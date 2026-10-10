@@ -42,7 +42,7 @@
 | 成员 | AI 编程工具 | 底层模型 | 备注 |
 |------|------------|---------|------|
 | 2412224-王泊凯 | Codex | DeepSeek-V4-Pro | 无 |
-| 2413551-李睿 | VS Code | DeepSeek-V4-Pro | 无 |
+| 2413551-李睿 | VS Code | DeepSeek-V4.1-Flash | 无 |
 | 2411259-成钧翔 | Codex | GPT-5 | 无 |
 
 
