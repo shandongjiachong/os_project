@@ -61,7 +61,66 @@ size_t nr_free_pages(void) {
     return pmm_manager->nr_free_pages();
 }
 
-//lab2 function1 YOUR CODE
+//lab2 function1 2411259
+static void page_init(void) {
+    extern char end[];
+
+    uint64_t mem_base = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+    if (mem_base == 0 || mem_size == 0 || mem_base + mem_size <= mem_base) {
+        panic("invalid physical memory range from device tree");
+    }
+    if (mem_base != DRAM_BASE) {
+        panic("unexpected DRAM base: 0x%016lx", mem_base);
+    }
+
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+
+    uintptr_t mem_end = mem_base + mem_size;
+    uintptr_t managed_end = mem_end;
+    if (managed_end > PHYSICAL_MEMORY_END) {
+        managed_end = PHYSICAL_MEMORY_END;
+    }
+    managed_end = ROUNDDOWN(managed_end, PGSIZE);
+    if (managed_end <= mem_base) {
+        panic("no manageable physical memory");
+    }
+
+    npage = PPN(managed_end);
+    if (npage <= nbase) {
+        panic("invalid physical page range");
+    }
+
+    pages = (struct Page *)ROUNDUP((uintptr_t)end, PGSIZE);
+    size_t page_count = npage - nbase;
+    if (page_count > (~(uintptr_t)0) / sizeof(struct Page)) {
+        panic("page descriptor array is too large");
+    }
+
+    uintptr_t pages_end = (uintptr_t)pages + page_count * sizeof(struct Page);
+    if (pages_end < (uintptr_t)pages) {
+        panic("page descriptor address overflow");
+    }
+
+    for (size_t i = 0; i < page_count; i ++) {
+        pages[i].flags = 0;
+        pages[i].property = 0;
+        set_page_ref(&pages[i], 0);
+        SetPageReserved(&pages[i]);
+    }
+
+    uintptr_t free_begin = ROUNDUP(PADDR(pages_end), PGSIZE);
+    uintptr_t free_end = managed_end;
+
+    cprintf("physical memory map:\n");
+    cprintf("  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n",
+            managed_end - mem_base, mem_base, managed_end - 1);
+
+    if (free_begin < free_end) {
+        init_memmap(pa2page(free_begin),
+                    (free_end - free_begin) / PGSIZE);
+    }
+}
 
 /* pmm_init - initialize the physical memory management */
 void pmm_init(void) {
