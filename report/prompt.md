@@ -1,6 +1,38 @@
 # Lab2 提示词汇总
 
-本文件汇总王泊凯（2412224）的 Best-Fit 提示记录与李睿（2413551）的 Buddy System 两份提示词。
+本文件汇总 A 的物理内存初始化提示词、王泊凯（2412224）的 Best-Fit 提示记录与李睿（2413551）的 Buddy System 两份提示词。
+
+# 任务一：物理内存探测与页描述符初始化
+
+负责人：2411259-成钧翔（A）。
+
+## 提示词设计
+
+我先区分物理地址、内核虚拟地址、物理页号和 Page 描述符地址，理解哪些区域必须保留，再明确 `page_init()` 与分配器的职责边界。在此基础上，我按 Prompt、Rely、Guarantee、Specification 四部分编写提示词，描述目标、依赖、责任和可验证行为，而不是用一段伪代码代替需求分析。
+
+## 完整提示词
+
+````markdown
+请在当前 uCore Lab2 项目中实现 kern/mm/pmm.c 的 page_init()，并在 WSL 中实际编译、运行和使用 GDB 验证。
+
+[Prompt]
+根据 DTB 返回的物理内存起点和大小，建立可管理物理页的 struct Page 描述符布局，并将排除 OpenSBI、内核镜像和描述符数组占用空间后的完整空闲页面交给当前 pmm_manager。仅修改 page_init() 对应的 lab2 实现区域，不修改测试、公共结构或其他分配器。
+
+[Rely]
+只依赖 get_memory_base()、get_memory_size()、panic()、cprintf()、init_memmap()、pa2page()、链接符号 end、struct Page，以及现有的 DRAM_BASE、PHYSICAL_MEMORY_END、PHYSICAL_MEMORY_OFFSET、PADDR、PPN、ROUNDUP、ROUNDDOWN 和页面状态宏。
+
+[Guarantee]
+正确设置 va_pa_offset、npage 和 pages；初始化所有 Page；保持内核与描述符数组占用页面为 reserved；仅把合法完整空闲页注册给分配器；保留原有接口和工程语义。
+
+[Specification]
+检查 DTB 范围为非零且加法不溢出；确认内存起点符合平台布局；管理上界不得超过框架上限；pages 必须页对齐并位于内核 end 之后；检查描述符数组大小计算和地址加法是否溢出，并核验实际运行中的数组布局；free_begin 必须位于描述符数组之后并向上页对齐；只有 free_begin < free_end 时调用 init_memmap()。完成后执行现有页面初始化测试，并用 GDB 检查关键全局变量和 reserved 状态。
+````
+
+## 对提示词结果的检查
+
+重点检查 `npage` 与描述符数量的区别、地址转换和页对齐、保留页状态、描述符数组占用范围，以及登记前后的空闲页计数。运行截图和具体分析见 [实验报告 A 部分](./实验报告模板.md)。
+
+---
 
 # 任务二：Best-Fit
 
