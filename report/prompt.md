@@ -1,54 +1,248 @@
 # Lab2 提示词汇总
 
-本文件汇总王泊凯（2412224）的 Best-Fit 提示记录与李睿（2413551） 的 Buddy System 两份提示词。
+本文件汇总王泊凯（2412224）的 Best-Fit 提示记录与李睿（2413551）的 Buddy System 两份提示词。
 
-# 任务二：Best-Fit 
+# 任务二：Best-Fit
 
-姓名：王泊凯；学号：2412224。以下区分真实发送记录、预写分工提示词和事后说明，不把它们混为同一回事。
+姓名：王泊凯；学号：2412224。以下区分真实发送记录、预写分工提示词和事后说明，不把它们混为同一回事。实际提示词及必要说明直接收录于本文件，无需打开旧材料目录。
 
 ## 1. 首次实际用户 Prompt
 
-[完整原文](<B-best-fit/evidence/initial-user-prompt.txt>)从本会话事件 seq 9 提取，要求读取分工、代码和指导书，并使用 DeepSeek v4.1 Flash max。原分工中的预写提示不是每一轮实际对话的替代品。
+以下为本会话事件 seq 9 的完整原文。原分工中的预写提示不是每一轮实际对话的替代品；引文中的本机路径只记录当时输入，不是本文件的附件依赖。
+
+````text
+@C:\Users\18504\xwechat_files\wxid_gmxjuz1cbaju22_f8cb\msg\file\2026-10\新建文件夹.zip 读一下文件内容，这是实验二给我们小组三人的分工，里面好像提示词已经写好了，这是实验指导书http://oslab.mobisys.top/lab2026/_book/ ，@D:\lab2.zip 这是实验二的代码，使用子智能体deepseek v4.1 flash max
+````
 
 ## 2. 最初实现任务及实际执行者
 
-[Best-Fit 任务提示](<B-best-fit/evidence/historical-best-fit-dispatch.txt>)来自实际工具调用 seq 87，包含全部接口、全扫描最小适配、切割、合并和禁止修改测试的要求。文件保留历史代码字符串中的转义反引号。
+以下记录来自实际工具调用 seq 87，保留原记录的转义反引号。这是一次尝试派发的实现任务，不是成功调用的证明。
 
-该次请求的路由是 deepseek/deepseek-v3-250324，返回错误：
+````text
+Historical tool dispatch seq 87. This records an attempted delegation, not proof of successful execution or actual model.
 
+You are implementing the Best-Fit physical memory allocator for uCore Lab2 (RISC-V).
+
+## Working directory
+C:/Users/18504/Desktop/OS/_tmp_code/lab2_new
+
+## Task
+Implement Best-Fit in \`kern/mm/best_fit_pmm.c\` and switch pmm in \`kern/mm/pmm.c\`.
+
+## Files already read — key facts
+
+### kern/mm/best_fit_pmm.c (current state, 138 lines)
+The file has the check functions already (basic_check, best_fit_check) but the implementation functions are missing — there are only stubs. You must add all the implementation. The structure uses the single free_area_t pattern (one free list, ordered by physical address ascending).
+
+Key invariants from best_fit_check():
+- When freeing p0+1(2 pages) and p0+4(1 page), then alloc_pages(4) must return NULL
+- alloc_pages(1) must select p0+4 (the 1-page block, smallest fit ≥ 1) NOT p0+1
+- alloc_pages(2) must then succeed from the p0+1..p0+2 block
+
+### kern/mm/default_pmm.c (complete, 254 lines)
+This is First-Fit. Use it as a structural template. Key difference: in alloc, First-Fit takes the FIRST block with property ≥ n; Best-Fit must scan ALL blocks and pick the one with MINIMUM property ≥ n.
+
+### struct Page (from memlayout.h):
+\`\`\`c
+struct Page {
+    int ref;
+    uint64_t flags;
+    unsigned int property;   // for head of free block: size of block
+    list_entry_t page_link;
+};
+\`\`\`
+
+Macros: SetPageProperty, ClearPageProperty, PageProperty, SetPageReserved, ClearPageReserved, PageReserved
+
+free_area_t has: list_entry_t free_list, unsigned int nr_free
+
+le2page(le, page_link) converts list_entry to Page*
+
+list ops: list_init, list_add (add after head), list_add_before(le, new), list_next, list_prev, list_empty, list_del
+
+### kern/mm/pmm.c (91 lines)
+init_pmm_manager() currently sets: pmm_manager = &default_pmm_manager;
+You must change it to: pmm_manager = &best_fit_pmm_manager;
+
+## What you must write
+
+### best_fit_pmm.c — full implementation
+
+Add at the top (after includes, before basic_check):
+\`\`\`c
+static free_area_t free_area;
+#define free_list (free_area.free_list)
+#define nr_free (free_area.nr_free)
+\`\`\`
+
+Implement these 5 functions (add them before or after the check functions, but the check functions must NOT be modified):
+
+1. **best_fit_init** — same as default_init: init free_list, set nr_free=0
+
+2. **best_fit_init_memmap(struct Page *base, size_t n)** — same logic as default_init_memmap:
+   - clear all pages in [base, base+n)
+   - set base->property = n, SetPageProperty(base), nr_free += n
+   - insert base into free_list in address-ascending order
+
+3. **best_fit_alloc_pages(size_t n)** — DIFFERENT from First-Fit:
+   - if n > nr_free return NULL
+   - scan ALL entries in free_list, find the one with MINIMUM property >= n (best fit)
+   - if found: remove it, split if property > n (remainder goes back into list in address order), ClearPageProperty on allocated head, nr_free -= n, return page
+   - if not found: return NULL
+
+4. **best_fit_free_pages(struct Page *base, size_t n)** — same as default_free_pages:
+   - clear all pages in range, set base->property=n, SetPageProperty(base), nr_free += n
+   - insert in address-ascending order
+   - merge with previous block if adjacent
+   - merge with next block if adjacent
+
+5. **best_fit_nr_free_pages** — return nr_free
+
+6. **best_fit_check** — already exists, do NOT modify it
+
+7. Add at the end:
+\`\`\`c
+const struct pmm_manager best_fit_pmm_manager = {
+    .name = "best_fit_pmm_manager",
+    .init = best_fit_init,
+    .init_memmap = best_fit_init_memmap,
+    .alloc_pages = best_fit_alloc_pages,
+    .free_pages = best_fit_free_pages,
+    .nr_free_pages = best_fit_nr_free_pages,
+    .check = best_fit_check,
+};
+\`\`\`
+
+### pmm.c
+Change only ONE line in init_pmm_manager():
+  FROM: pmm_manager = &default_pmm_manager;
+  TO:   pmm_manager = &best_fit_pmm_manager;
+
+## Critical correctness notes for best_fit_alloc_pages
+
+The check does this:
+\`\`\`
+free_pages(p0 + 1, 2);  // block at p0+1, size 2
+free_pages(p0 + 4, 1);  // block at p0+4, size 1
+// free_list: [p0+1(2), p0+4(1)]  (ascending order)
+assert(alloc_pages(4) == NULL);          // no block >= 4
+assert(p0[1].property == 2);             // block at p0+1 still has property 2
+p1 = alloc_pages(1);                     // best fit for 1: pick p0+4 (size 1), NOT p0+1 (size 2)
+assert(p0 + 4 == p1);                    // must be p0+4
+assert(alloc_pages(2) != NULL);          // now free_list: [p0+1(2)], alloc 2 succeeds
+\`\`\`
+
+So best-fit MUST scan entire list and pick the minimum-size block that fits.
+
+## Steps
+
+1. Read the current best_fit_pmm.c to see exact content
+2. Write the complete new best_fit_pmm.c with all implementations
+3. Edit pmm.c to switch the manager
+4. Verify both files look correct
+
+Use the read and write/edit tools to accomplish this. Write the COMPLETE file for best_fit_pmm.c (not just a patch), preserving the existing check functions exactly.
+````
+
+该次请求使用 deepseek/deepseek-v3-250324 路由，返回错误：
 
 > child LLM route "deepseek/deepseek-v3-250324" is not allowed for this Session
 
-这既不是用户指定的 Flash 路由，也没有成功执行。不能写成“DeepSeek Flash 首次生成并通过验证”。历史源码由主助手在后续工具调用（seq 108；管理器选择 seq 122）写入。本次没有重新虚构一次算法生成过程。
+这既不是用户指定的 Flash 路由，也没有成功执行。随后源码由主助手写入（seq 108；管理器选择 seq 122），不能写成“DeepSeek Flash 首次生成并通过验证”。该历史提示词的文件状态与路径描述对应当时快照，不作为当前仓库状态说明。
 
 ## 3. 后续实际约束与最终工作 Prompt
 
-- [身份与分支要求原文](<B-best-fit/evidence/identity-and-branch-prompt.txt>)：明确王泊凯、2412224、无需个人分支。其当时的“只给命令”约束后来由下一条执行要求取代。
-- [最终执行 Prompt 完整原文](<B-best-fit/evidence/current-user-request.txt>)：只做 B；隔离目录；保留队友与测试；真实编译、普通运行和正式评分；保存真实截图；不得 commit/push；失败必须如实记录。本次按这条执行。
-- [只读审查 Prompt 完整原文](<B-best-fit/evidence/review-prompt.txt>)：发送给实际成功运行的 deepseek-official/deepseek-flash、reasoning=max 子智能体，要求检查最小适配、顺序、计数、合并和保护范围，不构建、不改文件。会话 ID：0395ee64-0519-4b7f-8978-eed5cb1a9476。
+### 3.1 身份与分支要求原文
+
+````text
+姓名：王泊凯 学号：2412224，github可以直接提交到Lab2分支，不用个人分支，仍旧是给我命令，你不执行
+````
+
+这条消息当时要求只提供命令；其后的执行请求另行授权了本地验证和材料准备。
+
+### 3.2 本地验证与材料准备的执行 Prompt 原文
+
+````text
+你是操作系统实验助手。请依据已有流程、实验指导书和小组分工，直接执行我负责的 Lab2 Best-Fit 部分的验证（即B同学），并补齐全部提交材料（含截图），整理到仅需由我自行提交的状态。姓名：王泊凯；学号：2412224。不要只提供操作命令。
+
+### 执行步骤
+1. **读取并核对资料**：可读取项目目录 `/mnt/c/Users/18504/Desktop/OS/os_project` 和本地实现目录 `/mnt/c/Users/18504/Desktop/OS/_tmp_code/lab2_new`。查阅实验指导书、分工及现有材料，确认代码、工作树和 `Lab2` 分支状态；找不到的资料或路径须明确说明，不猜测要求。
+2. **检查负责范围**：沿用已有独立工作目录流程，不创建个人分支，不删除或强制覆盖已有工作。核对 Best-Fit 实现及管理器接入语句，保留原有两个测试函数、队友的 `page_init()` 和学号标记。若目标代码已被队友更新，先比较，不直接覆盖。
+3. **执行真实验证**：核实工具链和 QEMU 环境，依次执行编译、普通自检和正式 `make grade`。已知本机 QEMU 7.0.0 曾存在固件与评分启动方式兼容问题，不得假定更换版本即可通过，也不得将额外启动配置改动混入本次材料。超时退出不等于验证通过。
+4. **补齐提交材料**：按指导书和分工要求整理代码及所需文档，正确填写姓名、学号；在 `report/B-best-fit/evidence` 下保存基础提交号、受测代码差异、环境版本、执行命令、完整日志、退出码及真实截图。截图须来自实际运行；无法截图时明确列为缺项，不伪造或用文字冒充。
+5. **复核并交接**：依据同一次正式评分运行的日志和退出码判断结果，核对 Page Init、Best-Fit 检查及 `Total Score: 20/20`。逐项检查提交材料是否齐全，最后列出材料路径、验证结论、缺失信息和阻塞项。
+
+### 必须遵守
+- 正式评分未通过，不得写成“已验收”；区分编译成功、自检通过和正式评分通过。
+- 所有结论必须有真实证据，不编造结果；存在阻塞时完成可安全执行的部分，并说明剩余事项。
+- 仅整理本地材料供我提交，不执行 Git 提交、推送或任何代提交操作。
+````
+
+引文中的旧材料保存位置保留为历史记录，不要求读者打开该目录。禁止 commit/push 是当时对助手的权限约束，不代表后来用户自行提交没有发生。
+
+### 3.3 只读审查 Prompt 原文
+
+````text
+请用中文只读审查 B Best-Fit 本地交付副本，不要改任何文件、不构建、不运行QEMU。用户王泊凯2412224，只授权本地准备，禁止commit/push。工作目录 C:/Users/18504/Desktop/OS。基线 _lab2_B_2412224_20261023/baseline，待交付 _lab2_B_2412224_20261023/submission。预期仅 code/kern/mm/best_fit_pmm.c完整实现+学号，code/kern/mm/pmm.c一行管理器选择。请核验全扫描最小块、失败不改状态、切割链表顺序、前后合并、计数、框架两个测试完全不变、page_init2411259完全不变、tools/Makefile/entry.S/pmm.h完全不变。明确合法调用前提，勿把历史或模拟测试当真实make grade。指出实际缺陷和边界；返回逐项结论和行号。本次使用deepseek-official/deepseek-flash reasoning=max。不要联网或查看凭证。
+````
+
+这次审查实际成功使用 deepseek-official/deepseek-flash、reasoning=max；审查会话为 0395ee64-0519-4b7f-8978-eed5cb1a9476。审查本身只读，不代替运行测试。
 
 ## 4. 审查输出与人工复核
 
-[原始审查结果](<B-best-fit/review/deepseek-flash-max-raw.md>)和[主审复核](<B-best-fit/review/主审复核.md>)同时保留。采纳静态不变量检查；当时不采纳“0/20 是假阴性”“换版本即可通过”等未经本副本运行验证的判断；后来 QEMU 4.1.1 的真实复跑补足通过证据，旧批次仍如实记为失败。主审还据实际逐页清理循环，把释放总复杂度明确为 O(n+k)，而非仅记链表搜索的 O(k)。
+静态审查核对了全扫描最小适配、失败不改状态、余块切割、地址有序插入、前后合并和空闲页计数。主审采纳这些不变量检查，但当时没有采纳“0/20 是假阴性”“换版本即可通过”等未经当前副本实测的判断；后来 QEMU 4.1.1 的真实复跑补足了通过证据，旧批次仍如实记为失败。释放包含逐页清理与链表查找，复杂度为 O(n+k)，而非仅 O(k)。
 
-本次代码迁移保留原有 Best-Fit 算法，只填写 B 身份并在远程基线上改变管理器选择。没有已证实的 Best-Fit 算法错误需要编造修复记录。历史有关 PGP 文件类型、objcopy 偏移及镜像大小的错误判断已在[实现说明](<B-best-fit/说明.md>)明确纠正，未混入本次源码。
+本次迁移保留原有 Best-Fit 算法，填写 B 身份并改变管理器选择，没有已证实的 Best-Fit 算法错误需要编造修复记录。AI 曾把 file 输出 PGP Secret Sub-key 直接判断为镜像损坏，并据此猜测需要调整 objcopy 地址或启动文件；这些判断证据不足，后续用源码核对、启动输出及实际评分纠正。最终保留原启动链、page_init 和框架测试，在独立 QEMU 4.1.1 环境取得通过结果。
 
-## 5. 已恢复的逐轮原文与图片反馈
+必须区分覆盖范围：原 best_fit_check 中 2 页加 1 页后申请 4 页失败属于总量不足；不能宣称独立验证了“总量充足但最大单块不足”。评分 Test 2 仅检查管理器指针，必须结合普通分配器自检，不能等同于完整边界测试。
 
-本轮通过原始事件读取接口，连续扫描会话 seq 1–3520，并按 source.kind=user 筛选，恢复截至本次补齐请求 seq 3339 的 48 条真实用户消息。包含图像反馈 19 次引用，对应 18 张不同附件；每张按 SHA-256 原样保存，不改图、不把截图 OCR 结果冒充用户文本。完整文本与图像链接见[逐轮原文](<B-best-fit/evidence/prompt-history/README.md>)，机器可读数据见[events.json](<B-best-fit/evidence/prompt-history/events.json>)。该范围的用户消息已完整恢复；这不是助手全部回答或所有工具调用的全量聊天备份。
+## 5. 逐轮记录与本机留存
 
-原分工中的预写消息保存在[分工原文](<B-best-fit/evidence/B-assignment-original.txt>)。这些是建议发送的模板，不等于每一条都实际发送过。原文中的个人分支建议后来被本人明确要求的 Lab2 目标分支及禁止本轮 commit/push 所取代。
+原始会话 seq 1–3520 中恢复了截至补齐请求 seq 3339 的 48 条用户消息，含 19 次图像引用、18 张不同附件。完整事件、图片、分工原文、审查全文、报告素材和运行日志已保存在仓库外的本机备份中。本文件直接收录实现任务、执行约束、审查提示和关键纠错原文，不以旧目录中的链接代替这些内容，也不声称此处包含全量聊天或全部图片。
 
-## 6. 环境纠错链与本轮收敛
+分工中的预写提示属于建议模板，不等于每条都实际发送过；其中个人分支的建议后来被本人对 Lab2 分支和执行权限的要求取代。报告由小组负责报告的同学整合，本文件只汇总提示词和必要的协作说明。
 
-- seq 2952：将修复范围限定为 Best-Fit 与管理器选择，禁止更改启动链和测试。
-- seq 3104：明确拒绝启动兼容性修改，要求改走课程认可环境。
-- seq 3155：同意独立安装 QEMU 4.1.1；编译器版本若不确定先确认。
-- 工具交互确认：本人选择“允许沿用现有工具链”，故保留 GCC 15.1.0；不将它标注为 SiFive 官方发行。
-- seq 3270：补充课程本地环境说明；该文没有指定工具链发行版本。
-- seq 3339：要求补齐 B 的全部材料。
+## 6. 环境纠错链与验证结果
 
-普通自检与原版评分已在 QEMU 4.1.1 下实测通过，原失败记录作为历史保留。此前“不保证换版本即可通过”是当时正确的证据边界，后来通过真实运行补足了结论，并非事后删除失败过程。详见[实现报告](<B-best-fit/说明.md>)与[验证证据](<B-best-fit/evidence/README.md>)。
+### seq 2952：限定修复范围
+
+````text
+请作为操作系统实验调试助手，解决当前 B 部分 Best-Fit 实验“编译成功但运行、评分失败”的问题。
+1. 定位普通 QEMU 超时退出（124）及 `make grade` 退出 2、两项 WRONG、0/20 的根因，根据实际日志和源码修复。
+2. 修改范围限于 Best-Fit 和管理器选择；不得修改队友的 `page_init()`、框架测试、启动配置或评分脚本。若修复必须超出范围，先说明原因并请求确认。
+3. 修复后重新编译、自检和正式评分，以同次运行取得两个 PASS、20/20 为验收标准，保存真实运行证据。
+4. 汇报根因、修改内容和实测结果；若仍失败，明确剩余阻塞，不得伪造成功。
+全程不执行 commit 或 push。
+````
+
+### seq 3104：拒绝启动兼容性修改
+
+````text
+课程不允许上述启动兼容性改动，请改走课程认可的运行环境方案，保持原有修改边界，不修改评分脚本，也不通过包装器替换启动参数。
+1. 先确认课程认可的环境要求；信息不足时向我询问，不自行假定。
+2. 在认可环境中验证启动、自检及原版评分，如实报告结果；若仍有阻塞，提供证据，不擅自扩大修改范围。
+仍不修改队友的 `page_init()` 和框架测试，不提交或推送。
+````
+
+### seq 3155：独立课程环境
+
+````text
+以课程实验指导书为准：
+1. 按 QEMU 4.1.1 安装示例建立独立环境，不覆盖现有 QEMU；工具链发行包若仍无法确定，先向我确认。
+2. 使用原启动参数验证启动，再运行普通自检和原版评分，报告结果。
+3. 不修改启动配置、评分脚本、`page_init()` 或框架测试，不使用参数替换包装器，不执行 commit 或 push。若仍被启动代码阻挡，保留证据并停止，不越界修复。
+````
+
+### seq 3270：补充环境说明
+
+````text
+@C:\Users\18504\xwechat_files\wxid_gmxjuz1cbaju22_f8cb\msg\file\2026-09\3_startdash.md
+````
+
+
+最终使用独立 QEMU 4.1.1、OpenSBI v0.4 和经确认的 GCC 15.1.0：构建退出 0，普通启动出现 check_alloc_page() succeeded!；原版 make grade 两项 OK、Total Score: 20/20、退出 0，同次串口包含 [Test 1] Page Init: PASS 和 [Test 2] Best-Fit: PASS。普通 QEMU 的 15 秒观察超时退出 124 不代表内核自动退出，成功依据为实际自检输出。
+
+历史 QEMU 7.0.0 的 0/20，以及一次将串口输出写到 Windows 挂载盘而报 grep: No data available 的 0/20，均保留为失败记录。后者改为 WSL /tmp 输出后复跑通过；未改写评分规则，也没有把后一次成功倒填进先前日志。完整证据继续留在本机，本文件不再要求通过旧目录链接读取。
 
 ## 7. 可复用的最终 spec（事后整理，非历史原文）
 
@@ -62,8 +256,6 @@
 ```
 
 ---
-
-
 
 ## 任务三：buddy system（伙伴系统）分配算法
 
