@@ -144,7 +144,7 @@ buddy_free_pages(struct Page *base, size_t n) {
 
     // 清空被释放页的状态与引用计数。
     struct Page *p = base;
-    for (size_t i = 0; i < size; i++) {
+    for (; p != base + size; p++) {
         assert(!PageReserved(p) && !PageProperty(p));
         p->flags = 0;
         set_page_ref(p, 0);
