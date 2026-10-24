@@ -1,0 +1,14 @@
+{
+  "qemu": "/home/ubuntu/.local/opt/oslab-qemu-4.1.1/install/bin/qemu-system-riscv64",
+  "old_qemu_sha256_before": "94733f57dbf9fbf932f111c190a765660122c4dd1aa9f32cc25ac34349c09c39",
+  "compiler": "/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-gcc",
+  "grade": "pending: selfcheck marker observed",
+  "evidence": "/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/validation_qemu411_20261024_114140",
+  "build_exit": 0,
+  "boot_observation": "still running after 15 seconds; inspected via original nographic monitor then explicitly quit",
+  "boot_process_exit": 0,
+  "selfcheck_success_marker": true,
+  "kernel_banner_seen": true,
+  "source_hashes_unchanged": true,
+  "old_qemu_sha256_after": "94733f57dbf9fbf932f111c190a765660122c4dd1aa9f32cc25ac34349c09c39"
+}

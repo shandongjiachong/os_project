@@ -1,0 +1,51 @@
+ACTUAL TERMINAL RUN - Wang Bokai 2412224 - B Best-Fit
+START 2026-10-24T01:59:19+08:00
+BASE 87f3c095f65ab14920ed60995d9f4c192332c4f1
+
+COMMAND make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- -j2
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/best_fit_pmm.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/pmm.c
++ cc libs/printfmt.c
++ cc libs/readline.c
++ cc libs/sbi.c
++ cc libs/string.c
++ ld bin/kernel
+/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img
+ACTUAL EXIT build = 0
+
+===== ORDINARY QEMU; NO BOOT CONFIGURATION CHANGES =====
+
+COMMAND timeout --signal=TERM --kill-after=5s 15s make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- QEMU=/usr/local/bin/qemu-system-riscv64 qemu
+make: *** [Makefile:164: qemu] Terminated
+ACTUAL EXIT qemu = 124
+
+QEMU FINISHED. Capture this screen, then press Enter for formal grade.
+/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/capture-run.sh: line 37: read: read error: 0: Resource temporarily unavailable
+[H[2J[3JACTUAL FORMAL MAKE GRADE - Wang Bokai 2412224
+BASE 87f3c095f65ab14920ed60995d9f4c192332c4f1
+START 2026-10-24T01:59:37+08:00
+
+COMMAND timeout --signal=TERM --kill-after=5s 120s make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- QEMU=/usr/local/bin/qemu-system-riscv64 GRADE_TMP=/tmp/lab2_B_2412224_terminal_2c7icoiD GRADE_QEMU_OUT=/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/submission/report/B-best-fit/evidence/terminal-run/grade-serial.log grade
+lab2 injection complete
+gmake[1]: Entering directory '/tmp/lab2_B_2412224_terminal_2c7icoiD' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/panic.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc kern/test/test_lab2.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel /opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/tmp/lab2_B_2412224_terminal_2c7icoiD'
+  -check page init:                          WRONG
+   -e !! error: missing '[Test 1] Page Init: PASS'
+
+  -check best fit:                           WRONG
+   -e !! error: missing '[Test 2] Best-Fit: PASS'
+
+Total Score: 0/20
+make: *** [Makefile:211: grade] Error 1
+ACTUAL EXIT grade = 2
+END 2026-10-24T01:59:40+08:00
+
+Formal result is the score and exit code printed above.
+No commit or push performed. Press Enter to close.
+/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/capture-run.sh: line 54: read: read error: 0: Resource temporarily unavailable

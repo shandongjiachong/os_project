@@ -1,0 +1,230 @@
+Lab2 Best-Fit 部分操作指导
+
+
+
+
+二、第一条消息：分析并实现 Best-Fit
+
+请在当前 uCore Lab2 项目中完成 Best-Fit 连续物理页分配器，并实际修改代码、编译和运行测试。
+
+开始修改前，请先阅读：
+
+- kern/mm/pmm.h
+- kern/mm/memlayout.h
+- libs/list.h
+- kern/mm/default_pmm.c
+- kern/mm/best_fit_pmm.c
+- kern/mm/pmm.c
+
+先向我说明：
+
+1. struct pmm_manager 要求实现哪些接口；
+2. First-Fit 如何维护空闲块；
+3. Best-Fit 与 First-Fit 的核心区别；
+4. 计划修改哪些文件和函数；
+5. basic_check() 和 best_fit_check() 对状态有哪些要求。
+
+任务要求：
+
+1. 在 kern/mm/best_fit_pmm.c 标有“lab2”和“YOUR CODE”的位置实现完整的 Best-Fit 分配器。
+2. 将 YOUR CODE 替换为我的学号：<在这里填写B的学号>。
+3. 实现初始化、初始空闲区注册、连续页分配、连续页释放、空闲页统计和 best_fit_pmm_manager 注册。
+4. 分配 n 页时，必须检查所有满足 property >= n 的空闲块，选择其中 property 最小的块。
+5. 如果选中块大于 n，要正确切割，并把剩余部分保留为空闲块。
+6. 空闲链表按物理页地址升序维护。
+7. 释放时要分别检查前后空闲块，同时相邻时最终合并成一个块。
+8. nr_free 必须始终等于所有空闲块页数之和。
+9. 在 kern/mm/pmm.c 的 init_pmm_manager() 中，将默认管理器切换为 best_fit_pmm_manager。
+
+禁止事项：
+
+- 不得修改已经完成的 page_init()。
+- 不得修改 basic_check() 和 best_fit_check()。
+- 不得修改 struct Page、struct pmm_manager 和链表库。
+- 不得修改 tools 目录中的测试与评分脚本。
+- 不得删除或放宽 assert。
+- 不得复制 First-Fit 后只修改名称。
+- 不要修改与任务无关的文件。
+
+完成代码后，请使用 WSL 实际执行：
+
+make clean
+make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- -j2
+
+然后使用本机的 QEMU 4.1.1 启动内核并运行测试。目标结果是：
+
+check_alloc_page() succeeded!
+[Test 1] Page Init: PASS
+[Test 2] Best-Fit: PASS
+
+如果出现编译错误、断言失败或测试失败，请继续定位并修复，直到通过。最后给出修改文件、关键算法、执行命令、完整测试结果和遇到的问题。
+
+
+三、AI 分析完成后的确认消息
+
+如果 AI 已经完成源码分析，但还没有开始修改，发送：
+
+分析没有问题。请按照上述功能边界直接修改当前项目代码，并在修改后使用 WSL 编译和运行测试。不要修改 page_init()、已有测试函数或评分脚本。如果出现错误，请继续调试，不要停留在只给建议的阶段。
+
+
+四、出现编译错误时发送的消息
+
+将从编译命令开始到错误结束的完整输出粘贴给 AI，然后发送：
+
+这是当前完整的编译输出。请先定位第一处真正的错误，判断它与本次 Best-Fit 修改之间的关系，然后进行最小范围修复。
+
+要求：
+
+1. 不得修改 page_init()；
+2. 不得修改 basic_check()、best_fit_check() 和评分脚本；
+3. 不得通过删除或放宽 assert 解决问题；
+4. 不要为了消除错误而改动无关模块；
+5. 修复后重新执行 make clean 和完整编译；
+6. 说明错误根因、修改位置和重新验证结果。
+
+
+五、能够编译但运行断言失败时发送的消息
+
+将从 QEMU 启动到断言失败的完整输出粘贴给 AI，然后发送：
+
+代码已经能够编译，但运行时出现了以上断言失败。请结合 best_fit_check() 中失败断言之前的分配和释放序列，手工推演并检查：
+
+1. free_list 中每个空闲块的起始位置；
+2. 每个空闲块的 property；
+3. nr_free 的数值；
+4. PageProperty 的设置与清除；
+5. 分裂后剩余块的位置和链表顺序；
+6. 释放后的前向、后向以及双向合并结果。
+
+请找到第一次状态不一致的位置，说明根因并进行最小修改，然后重新运行全部测试。不得修改测试函数或绕过断言。
+
+
+六、测试通过后的代码审查消息
+
+即使已经出现 PASS，也要继续发送：
+
+请对当前最终实现进行一次严格代码审查，逐项确认：
+
+1. 分配时是否遍历了全部候选空闲块；
+2. 是否选择了满足 n 的最小空闲块，而不是链表中的第一个可用块；
+3. n 大于 nr_free 或不存在足够大的连续块时，是否返回 NULL 且完全不改变状态；
+4. 切割后的剩余块是否具有正确的 property 和 PageProperty；
+5. 空闲链表是否始终按物理页地址升序排列；
+6. 前后同时相邻时是否最终合并为一个块；
+7. 被合并块的 PageProperty 是否被清除；
+8. nr_free 是否只在实际分配和释放时变化；
+9. 是否存在链表节点重复插入、重复释放或越界风险；
+10. 是否误改了 page_init()、已有测试代码或评分脚本。
+
+发现问题请直接修复并重新编译、运行全部测试；没有问题则给出逐项检查结论。
+
+
+七、B 同学本人需要执行的检查与测试
+
+AI 完成修改后，B 同学不能只看 AI 的结论，应在 WSL 中亲自执行：
+
+git status
+git diff --stat
+git diff
+git diff --check
+
+正常情况下主要修改：
+
+kern/mm/best_fit_pmm.c
+kern/mm/pmm.c
+
+pmm.c 原则上只能修改 init_pmm_manager() 中选择管理器的语句，不得重写 page_init()。
+
+设置工具链和 QEMU 路径。QEMU 路径需要替换为自己电脑上的实际位置：
+
+export GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-
+export QEMU=<QEMU-4.1.1可执行文件的绝对路径>
+
+make clean
+make GCCPREFIX="$GCCPREFIX" -j"$(nproc)"
+
+timeout 15s make \
+  GCCPREFIX="$GCCPREFIX" \
+  QEMU="$QEMU" \
+  qemu
+
+然后运行自动评分：
+
+make \
+  GCCPREFIX="$GCCPREFIX" \
+  QEMU="$QEMU" \
+  grade
+
+最终应看到：
+
+check_alloc_page() succeeded!
+[Test 1] Page Init: PASS
+[Test 2] Best-Fit: PASS
+
+如果没有两个 PASS，不得将任务标记为完成，应把完整日志继续发送给 AI 调试。
+
+
+八、提交代码
+
+测试通过后执行：
+
+git add kern/mm/best_fit_pmm.c kern/mm/pmm.c
+git commit -m "lab2: implement best-fit page allocator"
+git rev-parse HEAD
+
+如果使用共享远程仓库，再执行：
+
+git push -u origin lab2-best-fit-<学号>
+
+不要自行合并到主分支，由小组最后统一检查和整合。
+
+
+九、最后发送给 AI 的材料整理消息
+
+
+
+
+
+请整理本次任务的最终交付信息：
+
+1. 修改的文件和函数；
+2. Best-Fit 的功能 spec；
+3. 核心数据结构和不变量；
+4. Best-Fit 与 First-Fit 的区别；
+5. 分配、切割、释放和前后合并过程；
+6. 实际执行的编译和测试命令；
+7. 完整测试结果；
+8. 开发过程中遇到的 bug、根因和解决方法；
+9. First-Fit 有哪些改进空间；
+10. 当前 Best-Fit 有哪些改进空间；
+11. 输出最终 git diff --stat；
+12. 确认没有修改 page_init()、已有测试函数和评分脚本。
+
+这些内容将用于实验报告，请基于实际代码和运行结果回答，不要虚构。
+
+
+十、需要返回给小组的内容
+
+完成后请将以下内容一起返回，不要只发送修改后的两个源码文件：
+
+1. 姓名和学号；
+2. 使用的基础 commit hash；
+3. 分支名称；
+4. 最终 commit hash；
+5. 发给 AI 的第一条完整 Prompt；
+6. 后续所有纠错 Prompt；
+7. AI 第一次实现存在的问题；
+8. 最终修改文件清单；
+9. git diff 或补丁；
+10. Best-Fit 核心设计说明；
+11. 分配、切割和前后合并说明；
+12. 实际执行的编译、运行和评分命令；
+13. QEMU 运行日志；
+14. make grade 完整输出；
+15. 两个 PASS 的截图或文本证据；
+16. 遇到的 Bug、根因和解决方法；
+17. First-Fit 的改进空间；
+18. Best-Fit 的改进空间；
+19. 确认没有修改 page_init()、已有测试函数和评分脚本。
+
+

@@ -1,0 +1,87 @@
+START 2026-10-24T01:53:10+08:00
+SOURCE /mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/submission/code
+
+COMMAND make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- clean
+rm -f -r obj bin
+EXIT clean 0
+
+COMMAND make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- -j2
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/best_fit_pmm.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/pmm.c
++ cc libs/printfmt.c
++ cc libs/readline.c
++ cc libs/sbi.c
++ cc libs/string.c
++ ld bin/kernel
+/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img
+EXIT build 0
+
+COMMAND timeout --signal=TERM --kill-after=5s 15s make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- QEMU=/usr/local/bin/qemu-system-riscv64 qemu
+
+OpenSBI v1.0
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name             : riscv-virtio,qemu
+Platform Features         : medeleg
+Platform HART Count       : 1
+Platform IPI Device       : aclint-mswi
+Platform Timer Device     : aclint-mtimer @ 10000000Hz
+Platform Console Device   : uart8250
+Platform HSM Device       : ---
+Platform Reboot Device    : sifive_test
+Platform Shutdown Device  : sifive_test
+Firmware Base             : 0x80000000
+Firmware Size             : 252 KB
+Runtime SBI Version       : 0.3
+
+Domain0 Name              : root
+Domain0 Boot HART         : 0
+Domain0 HARTs             : 0*
+Domain0 Region00          : 0x0000000002000000-0x000000000200ffff (I)
+Domain0 Region01          : 0x0000000080000000-0x000000008003ffff ()
+Domain0 Region02          : 0x0000000000000000-0xffffffffffffffff (R,W,X)
+Domain0 Next Address      : 0x0000000000000000
+Domain0 Next Arg1         : 0x0000000087000000
+Domain0 Next Mode         : S-mode
+Domain0 SysReset          : yes
+
+Boot HART ID              : 0
+Boot HART Domain          : root
+Boot HART ISA             : rv64imafdcsuh
+Boot HART Features        : scounteren,mcounteren,time
+Boot HART PMP Count       : 16
+Boot HART PMP Granularity : 4
+Boot HART PMP Address Bits: 54
+Boot HART MHPM Count      : 0
+Boot HART MIDELEG         : 0x0000000000001666
+Boot HART MEDELEG         : 0x0000000000f0b509
+qemu-system-riscv64: terminating on signal 15 from pid 480 (timeout)
+EXIT qemu 124
+
+COMMAND timeout --signal=TERM --kill-after=5s 120s make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- QEMU=/usr/local/bin/qemu-system-riscv64 GRADE_TMP=/tmp/lab2_B_2412224_grade_eD0N9FKa GRADE_QEMU_OUT=/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/submission/report/B-best-fit/evidence/grade-serial.log grade
+lab2 injection complete
+gmake[1]: Entering directory '/tmp/lab2_B_2412224_grade_eD0N9FKa' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/panic.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc kern/test/test_lab2.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel /opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/tmp/lab2_B_2412224_grade_eD0N9FKa'
+  -check page init:                          WRONG
+   -e !! error: missing '[Test 1] Page Init: PASS'
+
+  -check best fit:                           WRONG
+   -e !! error: missing '[Test 2] Best-Fit: PASS'
+
+Total Score: 0/20
+make: *** [Makefile:211: grade] Error 1
+EXIT grade 2
+END 

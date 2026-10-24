@@ -1,0 +1,2 @@
+bin/kernel size=96840 blocks=192
+bin/ucore.img size=24600 blocks=56

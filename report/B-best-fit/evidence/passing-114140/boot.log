@@ -1,0 +1,82 @@
+make: Warning: File 'bin/ucore.img' has modification time 0.18 s in the future
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc02000d6 (virtual)
+  etext  0xffffffffc02016d2 (virtual)
+  edata  0xffffffffc0206018 (virtual)
+  end    0xffffffffc0206078 (virtual)
+Kernel executable memory footprint: 24KB
+memory management: best_fit_pmm_manager
+physical memory map:
+  memory: 0x0000000008000000, [0x0000000080000000, 0x0000000087ffffff].
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0205000
+satp physical address: 0x0000000080205000
+QEMU 4.1.1 monitor - type 'help' for more information
+(qemu) i[K[Din[K[D[Dinf[K[D[D[Dinfo[K[D[D[D[Dinfo [K[D[D[D[D[Dinfo r[K[D[D[D[D[D[Dinfo re[K[D[D[D[D[D[D[Dinfo reg[K[D[D[D[D[D[D[D[Dinfo regi[K[D[D[D[D[D[D[D[D[Dinfo regis[K[D[D[D[D[D[D[D[D[D[Dinfo regist[K[D[D[D[D[D[D[D[D[D[D[Dinfo registe[K[D[D[D[D[D[D[D[D[D[D[D[Dinfo register[K[D[D[D[D[D[D[D[D[D[D[D[D[Dinfo registers[K
+ pc       ffffffffc020010e
+ mhartid  0000000000000000
+ mstatus  8000000000006000
+ mip      0000000000000080
+ mie      0000000000000008
+ mideleg  0000000000000222
+ medeleg  000000000000b109
+ mtvec    0000000080000470
+ mepc     ffffffffc020162c
+ mcause   0000000000000009
+ zero 0000000000000000 ra ffffffffc020010e sp ffffffffc0204ff0 gp 0000000000000000
+ tp 000000008001be00 t0 ffffffffc02000d6 t1 ffffffffc0204fb8 t2 0000000000000001
+ s0 000000008001bd90 s1 000000008001be00 a0 0000000000000053 a1 ffffffffc0204f94
+ a2 0000000000000000 a3 0000000000000010 a4 0000000000000001 a5 0000000000000053
+ a6 0000000000000010 a7 0000000000000001 s2 00000000800095c0 s3 0000000000000000
+ s4 0000000000000000 s5 0000000000000000 s6 0000000000000000 s7 0000000000000008
+ s8 0000000000002000 s9 0000000000000000 s10 0000000000000000 s11 0000000000000000
+ t3 0000000000000000 t4 0000000000000000 t5 0000000000000000 t6 0000080000000000
+ ft0 0000000000000000 ft1 0000000000000000 ft2 0000000000000000 ft3 0000000000000000
+ ft4 0000000000000000 ft5 0000000000000000 ft6 0000000000000000 ft7 0000000000000000
+ fs0 0000000000000000 fs1 0000000000000000 fa0 0000000000000000 fa1 0000000000000000
+ fa2 0000000000000000 fa3 0000000000000000 fa4 0000000000000000 fa5 0000000000000000
+ fa6 0000000000000000 fa7 0000000000000000 fs2 0000000000000000 fs3 0000000000000000
+ fs4 0000000000000000 fs5 0000000000000000 fs6 0000000000000000 fs7 0000000000000000
+ fs8 0000000000000000 fs9 0000000000000000 fs10 0000000000000000 fs11 0000000000000000
+ ft8 0000000000000000 ft9 0000000000000000 ft10 0000000000000000 ft11 0000000000000000
+(qemu) x[K[Dxp[K[D[Dxp [K[D[D[Dxp /[K[D[D[D[Dxp /8[K[D[D[D[D[Dxp /8i[K[D[D[D[D[D[Dxp /8i [K[D[D[D[D[D[D[Dxp /8i 0[K[D[D[D[D[D[D[D[Dxp /8i 0x[K[D[D[D[D[D[D[D[D[Dxp /8i 0x8[K[D[D[D[D[D[D[D[D[D[Dxp /8i 0x80[K[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x802[K[D[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x8020[K[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x80200[K[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x802000[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x8020000[K[D[D[D[D[D[D[D[D[D[D[D[D[D[D[D[Dxp /8i 0x80200000[K
+0x0000000080200000:  00006297          auipc           t0,24576        # 0x80206000
+0x0000000080200004:  00028293          mv              t0,t0
+0x0000000080200008:  00a2b023          sd              a0,0(t0)
+0x000000008020000c:  00006297          auipc           t0,24576        # 0x8020600c
+0x0000000080200010:  ffc28293          addi            t0,t0,-4
+0x0000000080200014:  00b2b023          sd              a1,0(t0)
+0x0000000080200018:  c02052b7          lui             t0,-1071624192
+0x000000008020001c:  ffd0031b          addiw           t1,zero,-3
+(qemu) q[K[Dqu[K[D[Dqui[K[D[D[Dquit[K
+make: warning:  Clock skew detected.  Your build may be incomplete.

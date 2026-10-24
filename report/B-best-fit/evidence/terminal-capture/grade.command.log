@@ -1,0 +1,1 @@
+COMMAND timeout --signal=TERM --kill-after=5s 120s make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- QEMU=/usr/local/bin/qemu-system-riscv64 GRADE_TMP=/tmp/lab2_B_2412224_capture_ydXRaC06 GRADE_QEMU_OUT=/mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/submission/report/B-best-fit/evidence/terminal-capture/grade-serial.log grade 

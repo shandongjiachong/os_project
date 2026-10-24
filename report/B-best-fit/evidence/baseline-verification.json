@@ -1,0 +1,218 @@
+{
+  "commit": "87f3c095f65ab14920ed60995d9f4c192332c4f1",
+  "source": "GitHub immutable tarball (not a Git checkout)",
+  "expectedBranch": "Lab2",
+  "files": [
+    {
+      "path": ".gitignore",
+      "git_blob": "d5393600e464a0365624a8ba2392ba12cf6b3e2b",
+      "size": 207
+    },
+    {
+      "path": "code/kern/debug/assert.h",
+      "git_blob": "ac1a966178e9a35976cac522927d0ec4d81ba1da",
+      "size": 946
+    },
+    {
+      "path": "code/kern/debug/panic.c",
+      "git_blob": "324448cbf5874789f01475b108c710326c0777da",
+      "size": 883
+    },
+    {
+      "path": "code/kern/driver/console.c",
+      "git_blob": "a4cbb52653739605f76fd6c81daf351e82121ece",
+      "size": 603
+    },
+    {
+      "path": "code/kern/driver/console.h",
+      "git_blob": "72e61678ea0f332d2b596b08b440c0800484af0f",
+      "size": 222
+    },
+    {
+      "path": "code/kern/driver/dtb.c",
+      "git_blob": "2bdf121c21a58fd3e035bb8604c63f1e3a052a81",
+      "size": 5103
+    },
+    {
+      "path": "code/kern/driver/dtb.h",
+      "git_blob": "df17d683779fb8fbb90c96f1f60f9a2f188940e9",
+      "size": 279
+    },
+    {
+      "path": "code/kern/init/entry.S",
+      "git_blob": "72d3193f03ac3d8b30188bbaade50dd88fafbf0b",
+      "size": 2138
+    },
+    {
+      "path": "code/kern/init/init.c",
+      "git_blob": "3037fe2cce03d4a90d4d178868e60edad2eeedcb",
+      "size": 1309
+    },
+    {
+      "path": "code/kern/libs/stdio.c",
+      "git_blob": "5efefcd1ed3e6b7962d0c1455fd7f772017745d5",
+      "size": 1518
+    },
+    {
+      "path": "code/kern/mm/best_fit_pmm.c",
+      "git_blob": "367a53cbf1d897b062199e59ddfa2769160b15a0",
+      "size": 3448
+    },
+    {
+      "path": "code/kern/mm/best_fit_pmm.h",
+      "git_blob": "ea36e27c128689acfa25182438a4432e82837b33",
+      "size": 188
+    },
+    {
+      "path": "code/kern/mm/default_pmm.c",
+      "git_blob": "ace7775c495fe985c6275a3cae11899be1ce00b6",
+      "size": 6596
+    },
+    {
+      "path": "code/kern/mm/default_pmm.h",
+      "git_blob": "07352aa85d7229b29a1d756c99b3c1987431e0b4",
+      "size": 184
+    },
+    {
+      "path": "code/kern/mm/memlayout.h",
+      "git_blob": "34b98616484afdb7bf45e8ece3f85533d64c4ff9",
+      "size": 3120
+    },
+    {
+      "path": "code/kern/mm/mmu.h",
+      "git_blob": "e3edfb64e3b9f981990dfda0709a408a0eef4ad6",
+      "size": 3243
+    },
+    {
+      "path": "code/kern/mm/pmm.c",
+      "git_blob": "c2ae7402ba8bcff33f709cbc33b6f91c116a917b",
+      "size": 4692
+    },
+    {
+      "path": "code/kern/mm/pmm.h",
+      "git_blob": "cf9cc5d4050a3465f218d168ca17f0506d56d8b6",
+      "size": 4122
+    },
+    {
+      "path": "code/libs/defs.h",
+      "git_blob": "75610e96bfb76fcce276f90b385a262ca05afcf9",
+      "size": 2359
+    },
+    {
+      "path": "code/libs/error.h",
+      "git_blob": "b43fbd65dd1a4fcbb06499cb0ef379361da47618",
+      "size": 594
+    },
+    {
+      "path": "code/libs/list.h",
+      "git_blob": "3dbf7725844b1bed04426e4f406156723dafe7a0",
+      "size": 4628
+    },
+    {
+      "path": "code/libs/printfmt.c",
+      "git_blob": "a1cd1e2cc6650389bfc2414ed521d4ecb7e8ec4e",
+      "size": 9737
+    },
+    {
+      "path": "code/libs/readline.c",
+      "git_blob": "cc1eddbe4a338c02f84b1d2f8ef31181b4f06ddd",
+      "size": 1324
+    },
+    {
+      "path": "code/libs/riscv.h",
+      "git_blob": "835f02b8683f3d60e517b310bd633c78d759cdde",
+      "size": 46920
+    },
+    {
+      "path": "code/libs/sbi.c",
+      "git_blob": "f24f5834ab93bc8fb39ffc4d280b8e53a6a3a96f",
+      "size": 1077
+    },
+    {
+      "path": "code/libs/sbi.h",
+      "git_blob": "4e2fbd8cb1aecbd89c701b7493fecbd81fc56774",
+      "size": 939
+    },
+    {
+      "path": "code/libs/stdarg.h",
+      "git_blob": "f6e07582ada164ae2e9bc433ae3958c73bc701dc",
+      "size": 357
+    },
+    {
+      "path": "code/libs/stdio.h",
+      "git_blob": "41e8b41e92ef8b9abe2ef12f414124b58e69d1e5",
+      "size": 675
+    },
+    {
+      "path": "code/libs/string.c",
+      "git_blob": "6a19afa1a7329f37c7f489f9464449259cb146f4",
+      "size": 10938
+    },
+    {
+      "path": "code/libs/string.h",
+      "git_blob": "14d0aac04b6c163b5ae5bacd6a42fa7a3cf5869d",
+      "size": 707
+    },
+    {
+      "path": "code/Makefile",
+      "git_blob": "5e92f3784eaf063b808f597e561e97b92e14c2fc",
+      "size": 5442
+    },
+    {
+      "path": "code/tools/boot.ld",
+      "git_blob": "dc732b0ca519fe3e3bfb89b6ad7d5bdaea7e40bf",
+      "size": 219
+    },
+    {
+      "path": "code/tools/function.mk",
+      "git_blob": "9b8be0c5f592e27d1798c4515ccc0a5d5218af2d",
+      "size": 3011
+    },
+    {
+      "path": "code/tools/gdbinit",
+      "git_blob": "df5df85be4fc6cbcedb1c6f1547ab92a7fbc1cac",
+      "size": 52
+    },
+    {
+      "path": "code/tools/grade.sh",
+      "git_blob": "1dfda93183f64c6e02d381d4a6a4575a1b70c78a",
+      "size": 4666
+    },
+    {
+      "path": "code/tools/inject.py",
+      "git_blob": "4fa16cec9989de17708cd53aee6f35f879334500",
+      "size": 5141
+    },
+    {
+      "path": "code/tools/kernel.ld",
+      "git_blob": "2a637372c439020af4dd9727b16a1fee0be163f0",
+      "size": 953
+    },
+    {
+      "path": "code/tools/kernel_nopage.ld",
+      "git_blob": "3bb66763e94bb84e39602936ce5aa96bc09c7c9c",
+      "size": 1380
+    },
+    {
+      "path": "code/tools/test_lab2.c",
+      "git_blob": "1d77301b430129483e2b0fbe9e091961a70126b5",
+      "size": 3406
+    },
+    {
+      "path": "code/tools/test_lab2.h",
+      "git_blob": "fbced1600662c0f1edb01f2b939e57712b79aec9",
+      "size": 182
+    },
+    {
+      "path": "report/prompt.md",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "size": 0
+    },
+    {
+      "path": "report/实验报告模板.md",
+      "git_blob": "41e9ca464f1d2cf4cc632a44edc7f714cd5d9c9c",
+      "size": 5518
+    }
+  ],
+  "allBlobsMatch": true
+}

@@ -1,0 +1,7 @@
+[
+  "make",
+  "GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-",
+  "QEMU=/home/ubuntu/.local/opt/oslab-qemu-4.1.1/install/bin/qemu-system-riscv64",
+  "GRADE_TMP=/tmp/lab2_grade_qemu411_20261024_114241",
+  "grade"
+]
