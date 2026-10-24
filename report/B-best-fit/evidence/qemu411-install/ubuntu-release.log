@@ -1,8 +1,0 @@
-Command: wsl.exe -d Ubuntu-22.04 -e lsb_release -a
-Captured stdout (exit 0):
-Distributor ID:	Ubuntu
-Description:	Ubuntu 22.04.5 LTS
-Release:	22.04
-Codename:	jammy
-
-This file records stdout only. stderr included a Windows WSL networking warning and No LSB modules are available.; those are not Ubuntu version fields.

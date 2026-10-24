@@ -1,1 +1,0 @@
-@C:\Users\18504\xwechat_files\wxid_gmxjuz1cbaju22_f8cb\msg\file\2026-10\新建文件夹.zip 读一下文件内容，这是实验二给我们小组三人的分工，里面好像提示词已经写好了，这是实验指导书http://oslab.mobisys.top/lab2026/_book/ ，@D:\lab2.zip 这是实验二的代码，使用子智能体deepseek v4.1 flash max

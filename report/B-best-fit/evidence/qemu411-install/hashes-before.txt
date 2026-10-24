@@ -1,2 +1,0 @@
-ed6fdbbdd272611446ff8036991e9b9f04a2ab2e3ffa9e79f3bab0eb9a95a1d2  /mnt/c/Users/18504/Desktop/OS/_lab2_B_2412224_20261023/qemu-4.1.1.tar.xz
-94733f57dbf9fbf932f111c190a765660122c4dd1aa9f32cc25ac34349c09c39  /opt/qemu/bin/qemu-system-riscv64

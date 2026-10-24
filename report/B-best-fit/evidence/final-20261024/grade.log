@@ -1,6 +1,0 @@
-tar: .: time stamp 2026-10-24 11:59:35 is 0.063587798 s in the future
-lab2 injection complete
-gmake[1]: Entering directory '/tmp/lab2_B_2412224_capture_T33sfTwt' + cc kern/init/entry.S + cc kern/init/init.c + cc kern/libs/stdio.c + cc kern/debug/panic.c + cc kern/driver/console.c + cc kern/driver/dtb.c + cc kern/mm/best_fit_pmm.c + cc kern/mm/default_pmm.c + cc kern/mm/pmm.c + cc kern/test/test_lab2.c + cc libs/printfmt.c + cc libs/readline.c + cc libs/sbi.c + cc libs/string.c + ld bin/kernel /opt/riscv-elf-toolchains/bin/riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img gmake[1]: Leaving directory '/tmp/lab2_B_2412224_capture_T33sfTwt'
-  -check page init:                          OK
-  -check best fit:                           OK
-Total Score: 20/20

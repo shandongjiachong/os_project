@@ -1,1 +1,0 @@
-COMMAND make GCCPREFIX=/opt/riscv-elf-toolchains/bin/riscv64-unknown-elf- -j2 
