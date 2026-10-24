@@ -43,7 +43,7 @@
 以下为本会话事件 seq 9 的完整原文。原分工中的预写提示不是每一轮实际对话的替代品；引文中的本机路径只记录当时输入，不是本文件的附件依赖。
 
 ````text
-@C:\Users\18504\xwechat_files\wxid_gmxjuz1cbaju22_f8cb\msg\file\2026-10\新建文件夹.zip 读一下文件内容，这是实验二给我们小组三人的分工，里面好像提示词已经写好了，这是实验指导书http://oslab.mobisys.top/lab2026/_book/ ，@D:\lab2.zip 这是实验二的代码，使用子智能体deepseek v4.1 flash max
+@C:\Users\18504\xwechat_files\wxid_gmxjuz1cbaju22_f8cb\msg\file\2026-10\新建文件夹.zip 读一下文件内容，这是实验二给我们小组三人的分工，这是实验指导书http://oslab.mobisys.top/lab2026/_book/ ，@D:\lab2.zip 这是实验二的代码，使用子智能体deepseek v4.1 flash max
 ````
 
 ## 2. 最初实现任务及实际执行者
@@ -187,7 +187,7 @@ Use the read and write/edit tools to accomplish this. Write the COMPLETE file fo
 ### 3.1 身份与分支要求原文
 
 ````text
-姓名：王泊凯 学号：2412224，github可以直接提交到Lab2分支，不用个人分支，仍旧是给我命令，你不执行
+姓名：王泊凯 学号：2412224，github可以提交到Lab2分支
 ````
 
 这条消息当时要求只提供命令；其后的执行请求另行授权了本地验证和材料准备。
@@ -276,7 +276,7 @@ Use the read and write/edit tools to accomplish this. Write the COMPLETE file fo
 
 历史 QEMU 7.0.0 的 0/20，以及一次将串口输出写到 Windows 挂载盘而报 grep: No data available 的 0/20，均保留为失败记录。后者改为 WSL /tmp 输出后复跑通过；未改写评分规则，也没有把后一次成功倒填进先前日志。完整证据继续留在本机，本文件不再要求通过旧目录链接读取。
 
-## 7. 可复用的最终 spec（事后整理，非历史原文）
+## 7. 可复用的最终 spec
 
 该版本仅方便小组复现或讨论，不能冒充第一次发送的 Prompt：
 
