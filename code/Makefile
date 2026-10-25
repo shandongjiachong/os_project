@@ -13,6 +13,10 @@ ifndef QEMU
 QEMU := qemu-system-riscv64
 endif
 
+# 调试版 QEMU（源码用 --enable-debug 编译，含调试符号），
+# 仅供 `make debug` 目标使用，便于 gdb 附加调试 QEMU 源码的地址翻译过程。
+QEMU_DEBUG := /home/rain/qemu-4.1.1/riscv64-softmmu/qemu-system-riscv64
+
 ifndef SPIKE
 SPIKE := spike
 endif
@@ -168,11 +172,11 @@ qemu: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 		-device loader,file=$(UCOREIMG),addr=0x80200000
 
 debug: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
-	$(V)$(QEMU) \
+	$(V)$(QEMU_DEBUG) \
 		-machine virt \
 		-nographic \
 		-bios default \
-		-device loader,file=$(UCOREIMG),addr=0x80200000\
+		-device loader,file=$(UCOREIMG),addr=0x80200000 \
 		-s -S
 
 gdb:

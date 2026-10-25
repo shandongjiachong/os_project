@@ -155,8 +155,11 @@
 
 ## 任务三：buddy system（伙伴系统）分配算法
 
+负责人：2413551-李睿
+
 ### 一：从零生成 Buddy System 分配模块并接入内核
 
+````text
 [PROMPT]
 **任务**：参考现有的 uCore 物理内存管理框架，新建 kern/mm/buddy_pmm.c 和 kern/mm/buddy_pmm.h 文件，从零实现 Buddy System 页面分配模块，并临时接入内核用于验证。
 
@@ -284,12 +287,13 @@ struct pmm_manager {
 ## 8. 最小自检（buddy_check，本任务范围）
 本任务只需实现最小自检，用于确认模块基本可用：校验 nr_free 等于遍历所有 order 空闲块容量之和；做一次简单的单页/多页分配与释放往返，确认计数守恒。
 系统化的边界与压力测试属于后续独立任务，本任务不要实现。
-
+````
 
 
 
 ### 二：针对第一份提示词生成的分配算法设计相应的测试函数
 
+````text
 [PROMPT]
 **任务**：针对已实现的 Buddy System 页面分配模块（kern/mm/buddy_pmm.c），设计并实现完整的测试函数，以检验不同大小内存对象的分配和释放是否正确。
 
@@ -373,3 +377,4 @@ buddy_check() 至少覆盖以下测试场景（可拆分为多个 static 辅助�
 
 ## 7. 输出
 - 测试通过时用 cprintf 输出成功信息（如 "[Buddy] all checks passed"）；参考 best_fit_check 可选用 #ifdef ucore_test 分级输出，非必需。
+````
