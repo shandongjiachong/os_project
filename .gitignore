@@ -19,3 +19,6 @@ cscope.*
 # Local OS metadata
 .DS_Store
 Thumbs.db
+
+# Guidance materials (not pushed)
+guidance/
