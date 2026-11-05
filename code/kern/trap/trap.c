@@ -6,10 +6,15 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <riscv.h>
+#include <sbi.h>
 #include <stdio.h>
 #include <trap.h>
 
 #define TICK_NUM 100
+#ifndef SHUTDOWN_AFTER
+/* The starter has no shutdown limit; count printed tick intervals. */
+#define SHUTDOWN_AFTER 3
+#endif
 
 static void print_ticks() {
     cprintf("%d ticks\n", TICK_NUM);
@@ -80,7 +85,62 @@ void print_regs(struct pushregs *gpr) {
     cprintf("  t6       0x%08x\n", gpr->t6);
 }
 
-//lab3 function2 YOUR CODE
+//lab3 function2 2411259
+void interrupt_handler(struct trapframe *tf) {
+    const uintptr_t interrupt_bit = (uintptr_t)1 << (sizeof(tf->cause) * 8 - 1);
+    const uintptr_t cause = tf->cause & ~interrupt_bit;
+    static const char *const interrupt_names[] = {
+        [IRQ_U_SOFT] = "User software interrupt",
+        [IRQ_S_SOFT] = "Supervisor software interrupt",
+        [IRQ_H_SOFT] = "Hypervisor software interrupt",
+        [IRQ_M_SOFT] = "Machine software interrupt",
+        [IRQ_U_TIMER] = "User timer interrupt",
+        [IRQ_H_TIMER] = "Hypervisor timer interrupt",
+        [IRQ_M_TIMER] = "Machine timer interrupt",
+        [IRQ_U_EXT] = "User external interrupt",
+        [IRQ_S_EXT] = "Supervisor external interrupt",
+        [IRQ_H_EXT] = "Hypervisor external interrupt",
+        [IRQ_M_EXT] = "Machine external interrupt",
+    };
+
+    if (cause == IRQ_S_TIMER) {
+        clock_set_next_event();
+        ++ticks;
+        if (ticks % TICK_NUM == 0) {
+            print_ticks();
+            if (ticks / TICK_NUM == SHUTDOWN_AFTER) {
+                sbi_shutdown();
+            }
+        }
+    } else if (cause < sizeof(interrupt_names) / sizeof(interrupt_names[0]) &&
+               interrupt_names[cause] != NULL) {
+        cprintf("%s\n", interrupt_names[cause]);
+    } else {
+        cprintf("Unknown interrupt: cause %lu\n", (unsigned long)cause);
+        print_trapframe(tf);
+    }
+}
+
+/* Handle recoverable instruction exceptions and preserve the fallback. */
+void exception_handler(struct trapframe *tf) {
+    const char *name;
+    switch (tf->cause) {
+    case CAUSE_ILLEGAL_INSTRUCTION:
+        name = "Illegal instruction";
+        break;
+    case CAUSE_BREAKPOINT:
+        name = "Breakpoint";
+        break;
+    default:
+        print_trapframe(tf);
+        return;
+    }
+
+    cprintf("%s at 0x%016lx\n", name, (unsigned long)tf->epc);
+    /* The kernel test instructions are 16- or 32-bit and readable at sepc. */
+    uint16_t parcel = *(const volatile uint16_t *)tf->epc;
+    tf->epc += (parcel & 3) == 3 ? 4 : 2;
+}
 
 
 static inline void trap_dispatch(struct trapframe *tf) {

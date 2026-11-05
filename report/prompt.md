@@ -6,7 +6,7 @@
 
 负责人：2413551-李睿
 
-```
+````
 
 [PROMPT]
 
@@ -223,4 +223,77 @@ sp 既是恢复目标又是所有装载操作的基址寄存器，因此 sp 只�
 闭环；返回后 pc 为 Trap frame 中 epc 的最终值，特权级与 SIE 由 sstatus 恢复，
 通用寄存器内容与 Trap 发生前一致。
 
-```
+````
+
+---
+
+## 功能模块二：中断与异常处理功能
+
+负责人：2411259-成钧翔
+
+````markdown
+[PROMPT]
+
+在现有 Lab3 框架的 `kern/trap/trap.c` 中，完成
+`interrupt_handler(struct trapframe *tf)` 和
+`exception_handler(struct trapframe *tf)`。
+
+这个模块要根据 TrapFrame 中记录的原因采取对应的处理，并让程序在
+Trap 返回后从正确的位置继续运行。对时钟中断，要保证下一次中断还能
+发生；对非法指令和断点异常，要跳过刚刚触发异常的指令。
+
+只修改 `trap.c` 中模块二的实现区域，允许添加必要的头文件和缺失的
+关机阈值定义。保留原有函数签名、TrapFrame 布局、Trap 分发逻辑、
+汇编入口和返回流程。不得修改课程测试或评分脚本。
+保留 `lab3 function2` 标记，将 `YOUR CODE` 替换为 `2411259`。
+
+[RELY]
+
+- `struct trapframe` 中的 `cause` 用于识别 Trap 原因，`epc` 记录返回位置。
+- 框架已有的 `trap_dispatch()` 已区分中断和异常；中断处理函数需从
+  `cause` 中去掉最高位的中断标志，再识别具体编号。
+- 时钟处理使用 `IRQ_S_TIMER`、`clock_set_next_event()`、`ticks`、
+  `TICK_NUM`、`print_ticks()` 和 `sbi_shutdown()`。
+- 异常处理使用 `CAUSE_ILLEGAL_INSTRUCTION`、`CAUSE_BREAKPOINT`
+  和框架提供的 `print_trapframe(tf)`。
+- 输出要求以当前 `tools/grade.sh` 为准，保留已有诊断格式。
+
+[GUARANTEE]
+
+1. 每次 S 模式时钟中断都安排下一次事件，统计与关机按规定次数执行，
+   处理时不修改被中断程序的 `epc`。
+2. 非法指令和断点异常会输出异常类型及原始地址，并从下一条指令继续。
+3. 不认识的中断或异常能输出 TrapFrame，便于定位问题。
+
+[SPECIFICATION]
+
+一、中断处理
+
+- 每收到一次 S 模式时钟中断，调用 `clock_set_next_event()`，
+  并将 `ticks` 增加一次。每达到 `TICK_NUM` 的整数倍，调用
+  `print_ticks()` 输出一次统计。
+- 累计统计输出达到 `SHUTDOWN_AFTER` 次后，调用 `sbi_shutdown()`。
+  当前框架未定义该阈值，因此本实现默认输出三次 `100 ticks` 后关机，
+  并允许通过编译参数覆盖默认值。
+- 其他已知中断输出对应提示。监督者软件中断输出
+  `Supervisor software interrupt`。未知中断先输出原因编号，
+  如 `Unknown interrupt: cause 15`，再打印 TrapFrame。
+
+二、异常处理
+
+- 非法指令输出 `Illegal instruction at` 及触发地址；断点异常输出
+  `Breakpoint at` 及触发地址。
+- 从 `tf->epc` 指向的指令读取低半字。对本实验中的 16 位和 32 位指令，
+  根据编码低两位判断长度：低两位不全为 1 时推进 2 字节，否则推进
+  4 字节。不要按异常类型写死偏移，以免返回到错误位置。
+- 其他异常调用 `print_trapframe(tf)`，不擅自推进 `epc`。
+
+三、验证
+
+- 用 `make qemu` 检查时钟统计是否连续输出，达到阈值后 QEMU
+  是否正常退出。
+- 用课程原有的 `make grade` 检查断点返回、非法指令返回、未知原因
+  的兜底输出，以及时钟中断能否持续触发。
+- 如果本机汇编器不识别已有汇编中的 `sbadaddr`，验证时使用
+  `DEFS=-Dsbadaddr=stval`，不要为此修改模块一的源文件。
+````
