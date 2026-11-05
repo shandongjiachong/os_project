@@ -1,73 +1,9 @@
-# RISC-V ucore OS Project
+# Lab3：A 完成后的阶段代码
 
-This repository contains the group's ucore operating-system laboratory work.
-Each lab is kept as a separate directory so completed labs remain reproducible
-when later labs are added.
+本目录是正式课程框架的 A 阶段副本，保留了以下实现：
 
-## Current lab
+- `kern/mm/pmm.c`：接入 Lab2 的 `page_init()` 和 Best-Fit 选择，保留 Lab3 的中断保护。
+- `kern/mm/best_fit_pmm.c`：接入 Lab2 的 Best-Fit，保留课程自带测试。
+- `kern/trap/trapentry.S`：补完 `RESTORE_ALL` 和 `__alltraps` 的 C 调用，兼容当前汇编器的 `stval` CSR 名称。
 
-- `lab1`: minimal executable kernel
-
-The current checkout is the lab1 source tree. The kernel is linked at
-`0x80200000`, loaded by QEMU's built-in OpenSBI firmware, prints a startup
-message, and then enters an infinite loop.
-
-## Required tools
-
-The lab is intended to run in a 64-bit Linux or WSL environment with:
-
-- GNU Make
-- `riscv64-unknown-elf-gcc`
-- `riscv64-unknown-elf-ld`
-- `riscv64-unknown-elf-objcopy`
-- `riscv64-unknown-elf-objdump`
-- `riscv64-unknown-elf-gdb`
-- `qemu-system-riscv64`
-
-The RISC-V toolchain's `bin` directory must be on `PATH`.
-
-## Build and run
-
-From the lab directory:
-
-```bash
-make
-make qemu
-```
-
-QEMU runs without a graphical window. Use `Ctrl+A`, then `X` to exit.
-
-## Debug
-
-Use two terminals:
-
-```bash
-make debug
-```
-
-In the second terminal:
-
-```bash
-make gdb
-```
-
-The GDB exercise follows the path from the reset address `0x1000` to the
-kernel entry point `0x80200000`.
-
-## Collaboration
-
-The stable branch is `main`. For future labs, add a new directory such as
-`lab2/` instead of overwriting an earlier lab. A completed lab should be
-committed and tagged, for example:
-
-```bash
-git add .
-git commit -m "完成 lab1"
-git tag lab1-final
-git push origin main --tags
-```
-
-Generated files under `obj/` and `bin/` are intentionally ignored. Each
-collaborator still needs to install the toolchain and QEMU locally; the
-repository shares source code and reports, not the operating-system
-environment.
+`kern/trap/trap.c` 已恢复课程的 `lab3 function2 YOUR CODE` 骨架，供 B、C 接着实现中断和异常处理。因此该阶段不能完整构建或运行评分；课程测试及评分脚本保持原样，Lab3 学号仍待实际负责人填写。

@@ -35,7 +35,7 @@ static void check_alloc_page(void);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
-    pmm_manager = &default_pmm_manager;
+    pmm_manager = &best_fit_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -82,6 +82,68 @@ size_t nr_free_pages(void) {
 }
 
 //lab2 请补充你在lab2中的代码
+//lab2 function1 2411259
+static void page_init(void) {
+    extern char end[];
+
+    uint64_t mem_base = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+    if (mem_base == 0 || mem_size == 0 || mem_base + mem_size <= mem_base) {
+        panic("invalid physical memory range from device tree");
+    }
+    if (mem_base != DRAM_BASE) {
+        panic("unexpected DRAM base: 0x%016lx", mem_base);
+    }
+
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+
+    uintptr_t mem_end = mem_base + mem_size;
+    uintptr_t managed_end = mem_end;
+    /* Lab3 expresses the same limit as a virtual address. */
+    const uintptr_t mapped_end = PADDR(KERNTOP);
+    if (managed_end > mapped_end) {
+        managed_end = mapped_end;
+    }
+    managed_end = ROUNDDOWN(managed_end, PGSIZE);
+    if (managed_end <= mem_base) {
+        panic("no manageable physical memory");
+    }
+
+    npage = PPN(managed_end);
+    if (npage <= nbase) {
+        panic("invalid physical page range");
+    }
+
+    pages = (struct Page *)ROUNDUP((uintptr_t)end, PGSIZE);
+    size_t page_count = npage - nbase;
+    if (page_count > (~(uintptr_t)0) / sizeof(struct Page)) {
+        panic("page descriptor array is too large");
+    }
+
+    uintptr_t pages_end = (uintptr_t)pages + page_count * sizeof(struct Page);
+    if (pages_end < (uintptr_t)pages) {
+        panic("page descriptor address overflow");
+    }
+
+    for (size_t i = 0; i < page_count; i ++) {
+        pages[i].flags = 0;
+        pages[i].property = 0;
+        set_page_ref(&pages[i], 0);
+        SetPageReserved(&pages[i]);
+    }
+
+    uintptr_t free_begin = ROUNDUP(PADDR(pages_end), PGSIZE);
+    uintptr_t free_end = managed_end;
+
+    cprintf("physical memory map:\n");
+    cprintf("  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n",
+            managed_end - mem_base, mem_base, managed_end - 1);
+
+    if (free_begin < free_end) {
+        init_memmap(pa2page(free_begin),
+                    (free_end - free_begin) / PGSIZE);
+    }
+}
 
 /* pmm_init - initialize the physical memory management */
 void pmm_init(void) {
