@@ -22,3 +22,8 @@ Thumbs.db
 
 # Guidance materials (not pushed)
 guidance/
+/prompt-guidance/
+
+# Local helper scripts (not pushed)
+/tools/
+__pycache__/

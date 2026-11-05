@@ -56,7 +56,49 @@
 
     .macro RESTORE_ALL
 
-    #lab3 function1 YOUR CODE
+    #lab3 function1 2413551
+    # 先恢复 sstatus / sepc：trap() 可能已通过 tf->epc 修改返回地址，
+    # 因此必须以 Trap frame 中的当前值为准，不能沿用 CSR 里的旧值
+    LOAD t0, 32*REGBYTES(sp)
+    csrw sstatus, t0
+    LOAD t0, 33*REGBYTES(sp)
+    csrw sepc, t0
+
+    # 恢复通用寄存器（x0 恒为 0，x2(sp) 最后恢复）
+    LOAD x1, 1*REGBYTES(sp)
+    LOAD x3, 3*REGBYTES(sp)
+    LOAD x4, 4*REGBYTES(sp)
+    LOAD x5, 5*REGBYTES(sp)
+    LOAD x6, 6*REGBYTES(sp)
+    LOAD x7, 7*REGBYTES(sp)
+    LOAD x8, 8*REGBYTES(sp)
+    LOAD x9, 9*REGBYTES(sp)
+    LOAD x10, 10*REGBYTES(sp)
+    LOAD x11, 11*REGBYTES(sp)
+    LOAD x12, 12*REGBYTES(sp)
+    LOAD x13, 13*REGBYTES(sp)
+    LOAD x14, 14*REGBYTES(sp)
+    LOAD x15, 15*REGBYTES(sp)
+    LOAD x16, 16*REGBYTES(sp)
+    LOAD x17, 17*REGBYTES(sp)
+    LOAD x18, 18*REGBYTES(sp)
+    LOAD x19, 19*REGBYTES(sp)
+    LOAD x20, 20*REGBYTES(sp)
+    LOAD x21, 21*REGBYTES(sp)
+    LOAD x22, 22*REGBYTES(sp)
+    LOAD x23, 23*REGBYTES(sp)
+    LOAD x24, 24*REGBYTES(sp)
+    LOAD x25, 25*REGBYTES(sp)
+    LOAD x26, 26*REGBYTES(sp)
+    LOAD x27, 27*REGBYTES(sp)
+    LOAD x28, 28*REGBYTES(sp)
+    LOAD x29, 29*REGBYTES(sp)
+    LOAD x30, 30*REGBYTES(sp)
+    LOAD x31, 31*REGBYTES(sp)
+
+    # sp 是所有装载的基址寄存器，只能最后恢复；
+    # 槽位 2 保存的是 Trap 发生前的 sp（由 SAVE_ALL 经 sscratch 写入）
+    LOAD x2, 2*REGBYTES(sp)
 
     .endm
 
@@ -65,7 +107,10 @@
 __alltraps:
     SAVE_ALL
 
-    #lab3 function1 YOUR CODE
+    #lab3 function1 2413551
+    # 把当前 Trap frame 首地址（即 sp）作为第一个参数传给 trap(struct trapframe *)
+    mv a0, sp
+    jal trap
     # sp should be the same as before "jal trap"
 
     .globl __trapret
