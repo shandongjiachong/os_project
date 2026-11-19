@@ -6,6 +6,7 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <riscv.h>
+#include <sbi.h>
 #include <stdio.h>
 #include <trap.h>
 #include <vmm.h>
@@ -83,7 +84,79 @@ void print_regs(struct pushregs *gpr)
 
 extern struct mm_struct *check_mm_struct;
 
-//lab3 请补充你在lab3中的代码
+//lab3 function2 2411259
+
+/* 统计输出多少次 100 ticks 之后关机。
+ * 框架未定义该阈值，这里给出默认值，并允许通过编译参数覆盖：
+ *   make DEFS="-DSHUTDOWN_AFTER=5"
+ * 注意必须 >= 2：测试用例要求 ticks 至少推进到 200。 */
+#ifndef SHUTDOWN_AFTER
+#define SHUTDOWN_AFTER 3
+#endif
+
+/* 异常返回地址调整：跳过刚刚触发异常的那条指令。
+ * RISC-V 指令长度由编码低两位决定：低两位 != 0b11 为 16 位压缩指令，
+ * 否则为 32 位指令。按实际编码而非异常类型判断，
+ * 才能保证 sret 返回到下一条指令而不是重复触发同一个异常。 */
+static void advance_epc(struct trapframe *tf)
+{
+    uint16_t parcel = *(volatile uint16_t *)tf->epc;
+    tf->epc += (parcel & 0x3) == 0x3 ? 4 : 2;
+}
+
+/* interrupt_handler - 处理中断类 Trap
+ * cause 最高位为 1 表示中断，去掉该标志后才是中断编号 */
+void interrupt_handler(struct trapframe *tf)
+{
+    uintptr_t cause = tf->cause & ~((uintptr_t)1 << 63);
+
+    switch (cause)
+    {
+    case IRQ_S_TIMER:
+        /* 先安排下一次时钟事件再统计，否则中断源不再触发，计时会停摆。
+         * 中断处理不能改写 epc，被中断的程序必须从原处继续执行。 */
+        clock_set_next_event();
+        ++ticks;
+        if (ticks % TICK_NUM == 0)
+        {
+            print_ticks();
+            if (ticks / TICK_NUM == SHUTDOWN_AFTER)
+                sbi_shutdown();
+        }
+        break;
+    case IRQ_S_SOFT:
+        cprintf("Supervisor software interrupt\n");
+        break;
+    case IRQ_S_EXT:
+        cprintf("Supervisor external interrupt\n");
+        break;
+    default:
+        /* 未知中断：先给原因编号，再打印完整现场便于定位 */
+        cprintf("Unknown interrupt: cause %lu\n", cause);
+        print_trapframe(tf);
+        break;
+    }
+}
+
+/* exception_handler - 处理异常类 Trap */
+void exception_handler(struct trapframe *tf)
+{
+    switch (tf->cause)
+    {
+    case CAUSE_ILLEGAL_INSTRUCTION:
+        cprintf("Illegal instruction at 0x%016lx\n", tf->epc);
+        advance_epc(tf);
+        break;
+    case CAUSE_BREAKPOINT:
+        cprintf("Breakpoint at 0x%016lx\n", tf->epc);
+        advance_epc(tf);
+        break;
+    default:
+        /* 不认识的原因不擅自推进 epc，只打印现场 */
+        print_trapframe(tf);
+        break;
+    }
+}
 
 
 

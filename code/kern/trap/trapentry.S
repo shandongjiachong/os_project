@@ -53,14 +53,62 @@
     .endm
 
     .macro RESTORE_ALL
-    #lab3:填写你在lab3中实现的代码
+    #lab3 function1 2413551
+    # 必须以 trapframe 中的当前值写回 sstatus/sepc：
+    # trap() 可能已修改 tf->epc（断点/非法指令推进返回地址、forkrets 设定新进程入口），
+    # 若沿用 CSR 中的旧值，sret 会返回到错误位置甚至重复执行同一条异常指令
+    LOAD t0, 32*REGBYTES(sp)
+    csrw sstatus, t0
+    LOAD t0, 33*REGBYTES(sp)
+    csrw sepc, t0
+
+    # 与 SAVE_ALL 对称地恢复通用寄存器
+    # x0 硬连线为 0，且 SAVE_ALL 未占用 0 号槽位，故不需要也不能恢复
+    LOAD x1, 1*REGBYTES(sp)
+    LOAD x3, 3*REGBYTES(sp)
+    LOAD x4, 4*REGBYTES(sp)
+    LOAD x5, 5*REGBYTES(sp)
+    LOAD x6, 6*REGBYTES(sp)
+    LOAD x7, 7*REGBYTES(sp)
+    LOAD x8, 8*REGBYTES(sp)
+    LOAD x9, 9*REGBYTES(sp)
+    LOAD x10, 10*REGBYTES(sp)
+    LOAD x11, 11*REGBYTES(sp)
+    LOAD x12, 12*REGBYTES(sp)
+    LOAD x13, 13*REGBYTES(sp)
+    LOAD x14, 14*REGBYTES(sp)
+    LOAD x15, 15*REGBYTES(sp)
+    LOAD x16, 16*REGBYTES(sp)
+    LOAD x17, 17*REGBYTES(sp)
+    LOAD x18, 18*REGBYTES(sp)
+    LOAD x19, 19*REGBYTES(sp)
+    LOAD x20, 20*REGBYTES(sp)
+    LOAD x21, 21*REGBYTES(sp)
+    LOAD x22, 22*REGBYTES(sp)
+    LOAD x23, 23*REGBYTES(sp)
+    LOAD x24, 24*REGBYTES(sp)
+    LOAD x25, 25*REGBYTES(sp)
+    LOAD x26, 26*REGBYTES(sp)
+    LOAD x27, 27*REGBYTES(sp)
+    LOAD x28, 28*REGBYTES(sp)
+    LOAD x29, 29*REGBYTES(sp)
+    LOAD x30, 30*REGBYTES(sp)
+    LOAD x31, 31*REGBYTES(sp)
+
+    # sp 既是恢复目标又是所有装载的基址寄存器，因此只能作为最后一步恢复；
+    # 2 号槽位保存的是 Trap 发生前的 sp（SAVE_ALL 经 sscratch 转存）
+    LOAD x2, 2*REGBYTES(sp)
     .endm
 
     .globl __alltraps
 __alltraps:
     SAVE_ALL
 
-    #lab3:填写你在lab3中实现的代码
+    #lab3 function1 2413551
+    # RISC-V 调用约定：第一个整型参数放在 a0
+    # 把当前 Trap frame 首地址（即 SAVE_ALL 之后的 sp）作为 tf 传给 trap()
+    mv a0, sp
+    jal trap
     # sp should be the same as before "jal trap"
 
     .globl __trapret

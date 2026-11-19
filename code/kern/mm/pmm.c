@@ -1,3 +1,4 @@
+#include <best_fit_pmm.h>
 #include <default_pmm.h>
 #include <defs.h>
 #include <error.h>
@@ -37,7 +38,7 @@ static void check_boot_pgdir(void);
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void)
 {
-    pmm_manager = &default_pmm_manager;
+    pmm_manager = &best_fit_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -87,7 +88,104 @@ size_t nr_free_pages(void)
     return ret;
 }
 
-//lab2 请补充你在lab2中的代码
+//lab2 function1: page_init - initialize the physical memory management
+// Build the Page descriptor array from the DTB memory range, reserve the
+// kernel image and descriptor array, then hand the remaining complete pages
+// to the current pmm_manager.
+static void page_init(void)
+{
+    extern char end[];
+
+    uint64_t mem_base = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+
+    // The DTB range must be non-zero and base + size must not wrap around.
+    if (mem_base == 0 || mem_size == 0 ||
+        mem_base > (uint64_t)(uintptr_t)-1 - mem_size)
+    {
+        panic("invalid physical memory range from device tree");
+    }
+    // The RISC-V platform places DRAM at DRAM_BASE.
+    if (mem_base != DRAM_BASE)
+    {
+        panic("unexpected DRAM base: 0x%016lx", (unsigned long)mem_base);
+    }
+
+    // The kernel image is mapped at VA=KERNBASE and PA=0x80200000.
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+
+    // The framework can only manage memory below PHYSICAL_MEMORY_END, which
+    // equals KERNTOP - va_pa_offset in the current layout.
+    uintptr_t mem_end = (uintptr_t)mem_base + (uintptr_t)mem_size;
+    uintptr_t framework_end =
+        (uintptr_t)KERNTOP - (uintptr_t)PHYSICAL_MEMORY_OFFSET;
+    uintptr_t managed_end = mem_end < framework_end ? mem_end : framework_end;
+    managed_end = ROUNDDOWN(managed_end, PGSIZE);
+    if (managed_end <= (uintptr_t)mem_base)
+    {
+        panic("no manageable physical memory");
+    }
+
+    npage = PPN(managed_end);
+    if (npage <= nbase)
+    {
+        panic("invalid physical page range");
+    }
+
+    // Place the descriptor array right after the kernel image.  It must be
+    // page aligned and must not overlap the kernel image.
+    pages = (struct Page *)ROUNDUP((uintptr_t)end, PGSIZE);
+    if ((uintptr_t)pages < (uintptr_t)end || PGOFF((uintptr_t)pages) != 0)
+    {
+        panic("invalid page descriptor array address");
+    }
+
+    size_t page_count = npage - nbase;
+    // Check both the array size computation and the address addition.
+    if (page_count > (uintptr_t)-1 / sizeof(struct Page))
+    {
+        panic("page descriptor array is too large");
+    }
+    uintptr_t pages_end = (uintptr_t)pages + page_count * sizeof(struct Page);
+    if (pages_end < (uintptr_t)pages)
+    {
+        panic("page descriptor address overflow");
+    }
+
+    // Initially mark every Page as reserved.  init_memmap() will clear the
+    // flags of the pages that are actually handed to the allocator, so the
+    // kernel image and the descriptor array stay reserved.
+    for (size_t i = 0; i < page_count; i++)
+    {
+        pages[i].flags = 0;
+        pages[i].property = 0;
+        set_page_ref(&pages[i], 0);
+        SetPageReserved(&pages[i]);
+    }
+
+    // The kernel image and the descriptor array occupy [mem_base, pages_end).
+    // The free region starts at the first page boundary after the array.
+    uintptr_t free_begin = ROUNDUP(PADDR(pages_end), PGSIZE);
+    uintptr_t free_end = managed_end;
+    if (free_begin < PADDR(pages_end) || PGOFF(free_begin) != 0)
+    {
+        panic("invalid free memory start");
+    }
+
+    cprintf("physical memory map:\n");
+    cprintf("  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n",
+            (unsigned long)(managed_end - (uintptr_t)mem_base),
+            (unsigned long)mem_base, (unsigned long)(managed_end - 1));
+    cprintf("  pages: 0x%016lx, npage: 0x%016lx, free: [0x%016lx, 0x%016lx).\n",
+            (unsigned long)pages, (unsigned long)npage,
+            (unsigned long)free_begin, (unsigned long)free_end);
+
+    // Only hand over complete free pages.
+    if (free_begin < free_end)
+    {
+        init_memmap(pa2page(free_begin), (free_end - free_begin) / PGSIZE);
+    }
+}
 
 static void enable_paging(void)
 {
