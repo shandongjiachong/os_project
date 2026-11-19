@@ -318,13 +318,81 @@ struct Page *get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store)
     return NULL;
 }
 
-//LAB4 function1 YOUR CODE
+//LAB4 function1 2413551
 
+// page_remove_pte - free an Page structure which is related linear address la
+//                - note that the page table page(or page directory page) is
+//                  not released here, only the mapped physical page is
+//                  dereferenced (and freed when ref reaches zero)
+// parameter:
+//  pgdir:  the kernel virtual base address of PDT
+//  la:     the linear address need to be removed
+//  ptep:   the kernel virtual address of the pte to be removed
+static void
+page_remove_pte(pde_t *pgdir, uintptr_t la, pte_t *ptep)
+{
+    if (*ptep & PTE_V)
+    {
+        struct Page *page = pte2page(*ptep);
+        if (page_ref_dec(page) == 0)
+        {
+            free_page(page);
+        }
+        *ptep = 0;
+        tlb_invalidate(pgdir, la);
+    }
+}
 
+// page_insert - build the map of phy addr of an Page with the linear addr la
+// parameter:
+//  pgdir:  the kernel virtual base address of PDT
+//  page:   the Page which want to be mapped
+//  la:     the linear address need to map
+//  perm:   the permission of this Page which is accessed by user
+// return vaule: return 0 if it is successfully, otherwise return -E_NO_MEM
+int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm)
+{
+    pte_t *ptep = get_pte(pgdir, la, 1);
+    if (ptep == NULL)
+    {
+        return -E_NO_MEM;
+    }
+    // the new mapping takes one reference of this physical page
+    page_ref_inc(page);
+    if (*ptep & PTE_V)
+    {
+        struct Page *old_page = pte2page(*ptep);
+        if (old_page == page)
+        {
+            // remap the same page: only the permission is updated,
+            // so drop the reference just taken above
+            page_ref_dec(page);
+        }
+        else
+        {
+            // remove the stale mapping, which also drops its reference
+            page_remove_pte(pgdir, la, ptep);
+        }
+    }
+    *ptep = pte_create(page2ppn(page), perm);
+    tlb_invalidate(pgdir, la);
+    return 0;
+}
 
-
-
-
+// page_remove - free an Page which is related linear address la
+//             - it is an idempotent interface: if there is no valid mapping,
+//               just return quietly
+// parameter:
+//  pgdir:  the kernel virtual base address of PDT
+//  la:     the linear address need to be removed
+void page_remove(pde_t *pgdir, uintptr_t la)
+{
+    pte_t *ptep = get_pte(pgdir, la, 0);
+    if (ptep != NULL)
+    {
+        page_remove_pte(pgdir, la, ptep);
+    }
+}
 
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.

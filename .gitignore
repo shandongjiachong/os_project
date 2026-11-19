@@ -22,6 +22,7 @@ Thumbs.db
 
 # Guidance materials (not pushed)
 guidance/
+*-guidance/
 /prompt-guidance/
 
 # Local helper scripts (not pushed)
