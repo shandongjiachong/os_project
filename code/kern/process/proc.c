@@ -218,7 +218,47 @@ init_main(void *arg)
     return 0;
 }
 
-//LAB4 function2 YOUR CODE
+//LAB4 function2: local integration dependency (A functions missing upstream)
+static struct proc_struct *
+alloc_proc(void)
+{
+    struct proc_struct *proc = kmalloc(sizeof(*proc));
+    if (proc != NULL)
+    {
+        memset(proc, 0, sizeof(*proc));
+        proc->state = PROC_UNINIT;
+        proc->pid = -1;
+        proc->pgdir = boot_pgdir_pa;
+        list_init(&proc->list_link);
+        list_init(&proc->hash_link);
+    }
+    return proc;
+}
+
+void proc_init(void)
+{
+    list_init(&proc_list);
+    for (size_t i = 0; i < HASH_LIST_SIZE; i++)
+    {
+        list_init(&hash_list[i]);
+    }
+
+    idleproc = alloc_proc();
+    assert(idleproc != NULL);
+    idleproc->pid = 0;
+    idleproc->state = PROC_RUNNABLE;
+    idleproc->kstack = (uintptr_t)bootstack;
+    idleproc->need_resched = 1;
+    set_proc_name(idleproc, "idle");
+    current = idleproc;
+    nr_process = 1;
+
+    int pid = kernel_thread(init_main, "Hello world!!", 0);
+    assert(pid > 0);
+    initproc = find_proc(pid);
+    assert(initproc != NULL);
+    set_proc_name(initproc, "init");
+}
 
 
 //LAB4 function2 2412224
@@ -364,4 +404,30 @@ int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags)
     return do_fork(clone_flags, 0, &tf);
 }
 
-//LAB4 function3 YOUR CODE
+//LAB4 function3 2411259
+void cpu_idle(void)
+{
+    while (1)
+    {
+        if (current->need_resched)
+        {
+            schedule();
+        }
+    }
+}
+
+void proc_run(struct proc_struct *proc)
+{
+    if (proc != current)
+    {
+        bool intr_flag;
+        local_intr_save(intr_flag);
+        struct proc_struct *prev = current;
+        current = proc;
+        write_csr(satp, ((uintptr_t)SATP_MODE_SV39 << 60) |
+                       (proc->pgdir >> RISCV_PGSHIFT));
+        flush_tlb();
+        switch_to(&prev->context, &proc->context);
+        local_intr_restore(intr_flag);
+    }
+}
