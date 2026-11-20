@@ -234,3 +234,257 @@ void page_remove(pde_t *pgdir, uintptr_t la);
 减少；连续多次 insert/remove 不应出现引用计数漂移或物理页泄漏。该组合行为同时满足
 `check_pgdir()`、`check_boot_pgdir()` 与 `test_lab4_pmm_basic()` 中的断言。
 ````
+
+---
+
+## 功能模块三：进程调度与上下文切换
+
+负责人为成钧翔，学号 2411259，使用的 AI 工具为 Codex。
+
+以下四段式提示词根据本次实际实现和联调过程整理。任务围绕“从已经创建的线程中选择运行对象，并让它获得 CPU”展开，覆盖调度请求、线程选择、页表切换、寄存器切换和首次运行衔接。
+
+````markdown
+[PROMPT]
+
+请基于当前 Lab4 工程完成进程调度与上下文切换模块。先读取实际源码，
+确认前两个模块已经提供的进程状态、链表、页表和首次运行上下文，再实现
+以下完整调用链，并在 WSL 中运行现有课程测试。
+
+cpu_idle() → schedule() → proc_run(next) → switch_to(from, to)
+
+任务目标
+
+- idleproc 发现调度请求后能调用调度器。
+- 调度器能够从 proc_list 中选择 PROC_RUNNABLE 线程，遍历一圈结束后
+  能确定运行对象，找不到可运行线程时选择 idleproc。
+- 线程切换期间，current、satp 和实际寄存器现场的更新受到本地中断保护。
+- 第一次切换到 initproc 时，能沿已有恢复链进入 init_main()。
+- 已经运行过的线程再次获得 CPU 时，能够从上一次切出的调用位置继续。
+
+修改范围
+
+- kern/process/proc.c 的 LAB4 function3 区域，实现 cpu_idle()、proc_run()。
+- kern/schedule/sched.c 的 LAB4 function3 区域，实现 schedule()。
+- kern/process/switch.S 的 LAB4 function3 区域，实现 switch_to()。
+- 保留 LAB4 function3 标记，将 YOUR CODE 替换为 2411259。
+- 按实际使用情况补充必要头文件，复用现有中断保护和 TLB 刷新接口。
+- 保持 proc_struct、context、trapframe 的布局、公开函数签名和已有宏定义。
+- 保持前两个模块的资源分配、线程登记、线程初始现场和唤醒约定。
+- 保持课程测试、评分脚本和框架提供的线程入口及 Trap 返回流程。
+- 原有 do_exit() 的行为作为运行现象记录，本模块交付范围为上述四个函数。
+
+依赖检查与交付要求
+
+开始前检查 alloc_proc()、proc_init()、kernel_thread()、do_fork()、
+copy_thread() 是否已有实现，并确认 proc->pgdir 的地址含义。
+如果缺少运行所必需的依赖，列出缺失函数、原分工归属以及对验证的影响。
+联调需要补齐时，将依赖补全与本模块实现分别说明，保留真实的归属记录。
+
+完成后说明修改文件、关键分支、实际运行命令和测试结果。测试失败时根据
+编译输出或运行现场定位原因。保留完整日志，并区分源码行为问题和工具链
+兼容问题。此次工作先保存在本地，提交和推送按后续明确指令执行。
+
+
+[RELY]
+
+只使用当前工程实现这条调用链所需的接口和布局。
+
+1. 线程管理数据
+
+struct proc_struct 中需要使用的成员为
+state、runs、need_resched、context、pgdir、list_link。
+
+extern struct proc_struct *current;
+extern struct proc_struct *idleproc;
+extern struct proc_struct *initproc;
+extern list_entry_t proc_list;
+
+PROC_RUNNABLE 同时覆盖可运行和正在运行的状态。
+idleproc 为调度器的兜底线程，普通线程通过 list_link 登记到 proc_list。
+proc_list 自身是哨兵节点，只有实际线程节点可以用 le2proc() 转回 PCB。
+list_next()、le2proc() 已在框架中提供。
+
+2. 寄存器上下文
+
+struct context 的字段顺序是
+ra、sp、s0、s1、s2、s3、s4、s5、s6、s7、s8、s9、s10、s11。
+
+它们都是 uintptr_t。RV64 下共 14 个槽，每槽 8 字节，总计 112 字节。
+switch_to() 的 a0 参数指向旧 context，a1 参数指向新 context。
+按 RISC-V 函数调用约定，保留返回地址、栈指针和被调用者保存寄存器。
+复用 riscv.h 提供的 REGBYTES、STORE 和 LOAD。
+
+3. 中断保护
+
+local_intr_save(flag) 保存原 SIE 状态并屏蔽本地 S 级中断。
+local_intr_restore(flag) 根据保存值恢复，支持配对使用的嵌套临界区。
+schedule() 和 proc_run() 分别保存自己的 flag。
+
+4. 页表接口
+
+proc->pgdir 保存页表根的物理地址，当前内核线程共享 boot_pgdir_pa。
+RV64 Sv39 的 satp.MODE 为 8，位于 bit 63–60，根页表地址按物理页号写入。
+使用 SATP_MODE_SV39、RISCV_PGSHIFT、write_csr(satp, value) 和 flush_tlb()。
+核对 kern/mm/pmm.c 的 enable_paging() 所使用的编码。
+libs/riscv.h 的 lsatp(unsigned int) 使用 Sv32 格式，本模块使用 RV64 Sv39 编码。
+
+5. 新线程首次运行约定
+
+前面的 copy_thread() 已把 context.ra 设置为 forkret，context.sp 指向
+新线程内核栈中的 TrapFrame，帧内 epc 指向 kernel_thread_entry。
+首次运行链为
+forkret → forkrets → __trapret → sret → kernel_thread_entry → 线程函数。
+
+forkret、forkrets、__trapret、kernel_thread_entry 和 TrapFrame 恢复代码
+已经由框架和前序模块提供，本模块按既定 context 布局接入。
+
+6. 现有验证入口
+
+make qemu 运行普通内核，init_main() 输出当前线程身份与 Hello world!!。
+make grade 在临时工程中注入课程测试，检查 PMM、Process Create 和 Schedule。
+tools/test_lab4.c 的调度测试会创建两个额外线程，让它们主动调用 schedule()，
+检查两个线程都曾实际执行。
+
+
+[GUARANTEE]
+
+必须交付以下四个接口，签名与现有声明一致。
+
+void cpu_idle(void);
+void schedule(void);
+void proc_run(struct proc_struct *proc);
+void switch_to(struct context *from, struct context *to);
+
+整体行为承诺
+
+- cpu_idle() 持续运行，检测到 need_resched 时触发调度。
+- schedule() 在一次有界查找中确定目标，遵守线程可运行状态和 idle 兜底规则。
+- proc_run() 让 current、页表根和寄存器上下文与被选择的线程一致。
+- switch_to() 完整保存、恢复 context 约定的 14 个寄存器槽。
+- 调度与线程切换的关键区域使用现有本地中断保护接口。
+- 新线程能够首次进入函数，暂停的线程能够恢复到先前的调用位置。
+- 原有公开接口、结构体布局和前序线程创建约定保持一致。
+
+
+[SPECIFICATION]
+
+一、cpu_idle()
+
+前置状态
+
+- proc_init() 已完成，current 指向 idleproc，相关链表已初始化。
+- 启动代码已经准备好时钟与中断环境。
+
+行为与可核对结果
+
+- 保持空闲循环，与声明中的 noreturn 约定一致。
+- current->need_resched 为真时调用 schedule()。
+- 标志为假时继续等待。schedule() 返回后重新检查标志。
+- 线程选择由 schedule() 完成。cpu_idle() 通过该接口交出 CPU。
+
+二、schedule()
+
+前置状态
+
+- current 和 idleproc 有效，proc_list 是合法循环双向链表。
+- 普通线程的 list_link 已正确登记，可运行线程标记为 PROC_RUNNABLE。
+
+关键行为
+
+- 保存进入前的中断状态并屏蔽本地中断，然后清除当前线程的 need_resched。
+- 当前线程是 idleproc 时，从 proc_list 的第一个实际节点开始选择。
+- 当前线程是普通线程时，从它的下一个节点开始选择，遇到链表尾可回到前部。
+- 扫描时跳过 proc_list 哨兵，只有实际线程节点参与状态判断。
+- 选择查找顺序中第一个 PROC_RUNNABLE 线程，完整扫描一圈后结束查找。
+- 所有普通线程都不可运行时，选择 idleproc。
+- 所选线程的 runs 增加一次，调用 proc_run(next) 完成必要的切换。
+- 此次调用恢复执行并返回时，使用本层保存的 flag 恢复中断状态。
+
+分支场景
+
+- 链表为空时能选择 idleproc，查找过程有限结束。
+- 当前为 idleproc 且 initproc 就绪时，能选择 initproc。
+- 有多个就绪线程时，从当前节点之后查找，给其他就绪线程运行机会。
+- 当前普通线程是唯一可运行线程时，一圈查找能再次选择它并继续执行。
+- 查找到睡眠或僵尸线程时跳过该节点。
+- next 等于 current 时照常统计本次选择，proc_run() 保持当前执行状态。
+
+三、proc_run(proc)
+
+前置状态
+
+- proc 是调度器选出的有效目标线程，其上下文已经准备好。
+- proc->pgdir 是页对齐的根页表物理地址，页表包含可执行内核及线程栈的映射。
+
+分支场景
+
+- proc 等于 current 时直接完成调用，保留当前页表和寄存器上下文。
+- proc 与 current 不同时，在保存并屏蔽本地中断的范围内记住旧线程指针，
+  更新 current，装入目标页表，完成 TLB 同步并调用 switch_to()。
+- 使用旧线程的 context 作为 from，目标线程的 context 作为 to。
+- satp 的 MODE 编码为 ((uintptr_t)SATP_MODE_SV39 << 60)，
+  PPN 部分为 proc->pgdir >> RISCV_PGSHIFT，按位组合后写入 satp。
+- satp 写入后调用 flush_tlb()，随后切换寄存器现场。
+
+暂停与恢复语义
+
+switch_to() 可能切到另一条执行流。旧线程的 proc_run() 调用会暂停，等旧线程
+以后重新获得 CPU，才会从 switch_to() 后继续。此时使用旧线程栈上保留的 flag
+恢复本层原来的中断状态。新线程首次运行时，通过预先构造的 TrapFrame 和 sret
+恢复到该线程指定的权限与中断状态。
+
+四、switch_to(from, to)
+
+前置状态
+
+- from 和 to 指向可读写且布局正确的 struct context。
+- 调用者已在安全的临界区内做好目标线程和页表的切换准备。
+
+布局与恢复效果
+
+| 字段 | 槽号 | RV64 字节偏移 |
+| --- | --- | --- |
+| ra | 0 | 0 |
+| sp | 1 | 8 |
+| s0–s11 | 2–13 | 16–104 |
+
+- 将旧线程的 ra、sp、s0–s11 保存到 from 对应槽位。
+- 从 to 的对应槽位恢复这 14 个寄存器，寻址始终使用正确的 context 指针。
+- 恢复后执行 ret，根据目标 ra 转移，目标 sp 决定后续使用的线程栈。
+- 首次运行的线程从预设的 forkret 开始，已经运行过的线程继续其先前调用。
+- 函数仅承担调用约定要求的现场迁移，调度选择和 satp 更新由上层完成。
+
+五、验证和输出要求
+
+- 先编译当前完整工程，确认四个接口均参与正常链接。
+- 用 make qemu 验证能出现 initproc 身份、Hello world!! 和后续线程输出。
+- 线程函数返回后，当前框架的 do_exit() 会触发 process exit!!. 的 panic
+  并进入调试监视器。保留原始输出并说明这一现象的来源。
+- 用 make grade 验证 PMM、Process Create、Schedule 三项，记录原始总分。
+- 遇到工具链兼容诊断时记录编译器版本、错误位置和实际使用的参数。
+- 对照上面的分支场景检查代码，说明现有自动测试覆盖了哪些行为，以及哪些
+  边界只进行了人工代码检查。
+````
+
+### 实际联调记录
+
+开始实现时，远程 Lab4 分支的基线提交为 `8d08563`。B 的四个创建函数已经存在，
+`alloc_proc()` 和 `proc_init()` 仍为空。为完成 C 的运行验证，本地补齐了这两个
+原分工属于 A 的依赖函数，并在 `proc.c` 标明依赖补全，随后随代码提交记录说明。
+
+本次使用 WSL、RISC-V GCC 15.1.0 和 QEMU。初次编译遇到框架 `kmalloc.c` 中整数
+地址传给指针参数的诊断，评分编译还遇到测试线程返回类型与 `kernel_thread()`
+参数类型不匹配的诊断。验证时使用以下两个编译参数将对应诊断降为警告。
+
+```bash
+cd /mnt/d/os/lab4_publish/code
+export PATH="/opt/riscv-elf-toolchains/bin:/home/lab/tools/qemu-4.1.1/riscv64-softmmu:$PATH"
+make qemu DEFS="-Wno-error=int-conversion -Wno-error=incompatible-pointer-types"
+make grade DEFS="-Wno-error=int-conversion -Wno-error=incompatible-pointer-types" GRADE_TMP="$(mktemp -d /tmp/lab4-grade.XXXXXX)"
+```
+
+普通启动成功进入 PID 为 1、名为 `init` 的线程，打印 `Hello world!!`，随后进入
+框架 `do_exit()` 提供的调试监视器。课程评分的 PMM、Process Create、Schedule
+三项均为 OK，总分为 `30/30`。调度测试实际检查了两个额外线程都曾运行，并经历
+多次主动调度。空链表、仅当前线程可运行、全无就绪线程等分支按源码进行了人工
+检查，本次未将它们记录为单独执行过的自动测试。
