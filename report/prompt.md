@@ -237,6 +237,129 @@ void page_remove(pde_t *pgdir, uintptr_t la);
 
 ---
 
+## 功能模块二：内核线程创建与登记
+
+负责人为王泊凯，学号 2412224。AI工具为codex
+
+````markdown
+[PROMPT]
+
+**任务**
+
+修改 `code/kern/process/proc.c`，实现 Lab 4 功能模块二 B 部分的内核线程创建与登记。将给定的入口函数 `fn` 和参数 `arg` 封装成一个可调度的内核线程，使它首次获得 CPU 时能在 S 态执行 `fn(arg)`。
+
+**操作要求**
+
+直接修改工程里的实际文件。在功能模块二的任务标记处实现 `kernel_thread()`、`do_fork()`、`copy_thread()` 和 `copy_mm()`，保留 `LAB4 function2` 标记，并把本部分的 `YOUR CODE` 替换为学号 `2412224`。若已有本学号的标记，沿用该标记。
+
+复用现有的 PCB 分配、内核栈分配、PID 管理、唤醒和 trap 返回机制，保留 `alloc_proc()`、`proc_init()`、调度代码、汇编入口和评分脚本。若当前分支缺少依赖，说明缺失项及其对编译或联调的影响。
+
+**输出要求**
+
+按下面的依赖、接口和行为规格实现，以仓库中的实际声明和汇编约定为准。完成后说明修改位置、失败清理路径，以及实际执行的验证和结果。联调条件齐备时运行课程自带的 `make grade`，重点核对 `Process Create` 和 `Schedule`。
+
+
+[RELY]
+
+- 进程状态和资源记录使用 `struct proc_struct`，相关字段为 `state`、`pid`、`parent`、`kstack`、`mm`、`pgdir`、`tf`、`context`、`list_link` 和 `hash_link`。新 PCB 的初始状态为 `PROC_UNINIT`，调度器选择 `PROC_RUNNABLE` 的线程。
+- `alloc_proc()` 分配并初始化 PCB，`kfree()` 释放 PCB。`setup_kstack()` 分配 `KSTACKPAGE` 个连续物理页并设置 `proc->kstack`，`put_kstack()` 回收该栈。内核栈大小使用 `KSTACKSIZE`。
+- `current` 指向当前线程。使用 `get_pid()` 分配 PID、`hash_proc()` 登记到 PID 哈希表、`list_add()` 挂入 `proc_list`，并更新 `nr_process`。`wakeup_proc()` 将新线程置为就绪态。进程数上限使用 `MAX_PROCESS`，错误码使用 `E_NO_FREE_PROC` 和 `E_NO_MEM`。
+- `boot_pgdir_pa` 是引导内核页表根的物理地址。Lab 4 的内核线程共用这张页表。
+- `struct trapframe` 包含 `gpr`、`status` 和 `epc`。使用 `read_csr(sstatus)` 和 `SSTATUS_SPP`、`SSTATUS_SPIE`、`SSTATUS_SIE` 构造返回状态。`kernel_thread_entry` 约定 `s0` 保存函数入口、`s1` 保存参数。
+- 首次切换经 `forkret`、`forkrets` 和 `__trapret` 恢复 trapframe，随后执行 `sret`。PID 与链表登记使用 `local_intr_save()` 和 `local_intr_restore()` 保护。
+
+
+[GUARANTEE]
+
+在 `code/kern/process/proc.c` 中交付以下四个接口，并保持现有公开声明及数据结构布局。
+
+```c
+int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags);
+int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf);
+static void copy_thread(struct proc_struct *proc, uintptr_t esp,
+                        struct trapframe *tf);
+static int copy_mm(uint32_t clone_flags, struct proc_struct *proc);
+```
+
+需要辅助函数时，将其声明为 `static`，限定在当前文件内。
+
+
+[SPECIFICATION]
+
+## kernel_thread
+
+**Pre-Condition**
+
+`fn` 是有效的内核函数入口。`arg` 由 `fn` 解释，如果它指向对象，该对象在新线程使用时必须仍然有效。当前进程管理结构已初始化。
+
+**Post-Condition**
+
+成功时返回 `do_fork()` 分配的正 PID，失败时原样返回其负错误码。创建成功的线程在首次被调度时执行 `fn(arg)`。
+
+**Requirements**
+
+清零临时 trapframe，将 `fn`、`arg` 分别写入 `gpr.s0`、`gpr.s1`，将 `epc` 指向 `kernel_thread_entry`。在帧的 `status` 中设置 `SPP` 和 `SPIE`、清除 `SIE`，使恢复现场后通过 `sret` 在 S 态开始执行。把 `clone_flags` 和 trapframe 交给 `do_fork()`，内核线程的 `stack` 参数传 `0`。
+
+
+## do_fork
+
+**Pre-Condition**
+
+`current`、进程链表和 PID 哈希表已初始化，`tf` 在调用期间有效。Lab 4 的内核线程通过 `stack == 0` 使用新分配的内核栈。
+
+**Post-Condition**
+
+成功时返回唯一的正 PID。新线程的父进程为 `current`，拥有独立的内核栈和完整的首次运行现场，使用 `boot_pgdir_pa`，可通过 PID 查到，且处于 `PROC_RUNNABLE`。
+
+**Case 1 — 达到进程数上限**
+
+返回 `-E_NO_FREE_PROC`，保持进程计数和登记结构原状。
+
+**Case 2 — 资源准备失败**
+
+PCB 分配失败时直接返回 `-E_NO_MEM`。内核栈分配失败时释放 PCB。地址空间处理返回失败时，先释放内核栈，再释放 PCB。失败路径结束后不得留下已登记的线程或泄漏已分配的资源。
+
+**Case 3 — 创建成功**
+
+完成 PCB、内核栈、页表和首次运行现场的准备，再分配 PID、登记到哈希表和进程链表并更新 `nr_process`，随后唤醒线程并返回 PID。
+
+**Requirements**
+
+PID 分配、两处登记和进程计数更新放在同一个本地关中断区间。退出该区间时恢复原有的中断状态。线程登记完成后才进入就绪态。
+
+
+## copy_thread
+
+**Pre-Condition**
+
+`proc` 已具备有效的内核栈，`tf` 指向可读的 trapframe 模板。内核线程路径传入 `esp == 0`。
+
+**Post-Condition**
+
+在新线程的内核栈顶为 trapframe 留出空间并复制模板，保存的子进程 `a0` 为 `0`。`context.ra` 指向 `forkret`，`context.sp` 指向新线程栈上的 trapframe。
+
+**Case 1 — `esp == 0`**
+
+将 trapframe 中保存的 `gpr.sp` 设为该帧的地址，使恢复现场后继续使用新线程的内核栈。
+
+**Case 2 — `esp != 0`**
+
+将 `esp` 写入 trapframe 的 `gpr.sp`。首次切换所用的 `context.sp` 仍指向新线程内核栈上的 trapframe。
+
+
+## copy_mm
+
+**Pre-Condition**
+
+`current` 和 `proc` 均有效。当前任务仅创建内核线程，`current->mm == NULL`，新 PCB 的 `mm` 初始为 `NULL`。
+
+**Post-Condition**
+
+返回 `0`，保持新线程的 `mm` 为 `NULL`，不分配或复制用户页表。保留 `clone_flags` 参数供后续实验扩展，由 `do_fork()` 为新线程设置共享的内核页表根。
+````
+
+---
+
 ## 功能模块三：进程调度与上下文切换
 
 负责人为成钧翔，学号 2411259，使用的 AI 工具为 Codex。
